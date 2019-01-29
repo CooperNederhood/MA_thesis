@@ -1,0 +1,322 @@
+import torch 
+import torch.nn as nn 
+import torch.nn.functional as F 
+import torchvision
+from torchvision import datasets, models, transforms
+from torch import utils, optim 
+import os 
+import time 
+import copy 
+import pandas as pd 
+import numpy as np 
+
+from PIL import Image 
+
+class segNet(nn.Module):
+
+    def __init__(self, img_size):
+        super(segNet, self).__init__()
+
+        # Define layers for encoding
+        self.my_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        self.conv1a = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1)
+        self.conv1b = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
+
+        self.conv2a = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+        self.conv2b = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, padding=1)
+
+        self.conv3a = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, padding=1)
+        self.conv3b = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, padding=1)
+        
+        # self.conv4a = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3)
+        # self.conv4b = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3)
+
+        # self.conv5a = nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=3)
+        # self.conv5b = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3)
+
+        # Define layers for decoding
+        self.tconv1 = nn.ConvTranspose2d(in_channels=256, out_channels=128, kernel_size=2, stride=2)
+        self.up_conv1a = nn.Conv2d(in_channels=128*2, out_channels=128, kernel_size=3, padding=1)
+        self.up_conv1b = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, padding=1)
+
+        self.tconv2 = nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=2, stride=2)
+        self.up_conv2a = nn.Conv2d(in_channels=64*2, out_channels=64, kernel_size=3, padding=1)
+        self.up_conv2b = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
+        #self.tconv3 = nn.ConvTranspose2d(in_channels=32, out_channels=3, kernel_size=2)
+
+        # Layer for classification
+        self.final_conv = nn.Conv2d(in_channels=64, out_channels=1, kernel_size=1)
+
+
+    def encoder_pass(self, x):
+
+        # Encode 1
+        x = F.relu(self.conv1a(x))
+        x1 = F.relu(self.conv1b(x))
+
+        # Encode 2
+        x2 = F.max_pool2d(F.relu(self.conv2a(x1)), 2)
+        x2 = F.relu(self.conv2b(x2))
+
+        # Encode 3 -- no downsampling here
+        x3 = F.max_pool2d(F.relu(self.conv3a(x2)), 2)
+        #x3 = F.max_pool2d(F.relu(self.conv3b(x3)), 2)
+        x3 = F.relu(self.conv3b(x3))
+
+        # # Encode 4
+        # x = F.relu(self.conv4a(x))
+        # x = F.max_pool2d(F.relu(self.conv4b(x)), 2)
+
+        # # Encode 5
+        # x = F.relu(self.conv5a(x))
+        # x = F.relu(self.conv5b(x))
+
+        return (x1, x2, x3)
+
+    def decoder_pass(self, x_list):
+
+        x1, x2, x3 = x_list
+
+        # Decode 1
+        x4 = self.tconv1(x3)
+        x4 = F.relu(self.up_conv1a(torch.cat((x2, x4),1)))
+        x4 = F.relu(self.up_conv1b(x4))
+
+        # Decode 2 
+        x5 = self.tconv2(x4)
+        x5 = F.relu(self.up_conv2a(torch.cat((x1, x5),1)))
+        x5 = F.relu(self.up_conv2b(x5))
+
+        return (x4, x5)
+
+    def forward(self, x):
+
+        x1, x2, x3 = self.encoder_pass(x)
+        x4, x5 = self.decoder_pass((x1,x2,x3))
+
+        segmented_image = F.sigmoid(self.final_conv(x5))
+
+        assert segmented_image.shape[-2:] == x.shape[-2:] 
+
+        return segmented_image
+
+
+class SegmentationDataset(utils.data.Dataset):
+    '''
+    Class defines segmentation (ie image with mask) dataset
+    '''
+
+    def __init__(self, root_path, list_of_transforms=None):
+
+        self.image_root = os.path.join(root_path, "image")
+        self.mask_root = os.path.join(root_path, "mask")
+        self.files = self._build_file_list(self.image_root, self.mask_root)
+        self.transform = transforms.ToTensor() if list_of_transforms is None else transforms.Compose(list_of_transforms) 
+
+
+    def __len__(self):
+        return len(self.files)
+
+    def __getitem__(self, index):
+
+        f = self.files[index]
+
+        image = Image.open(os.path.join(self.image_root, f))
+        mask = Image.open(os.path.join(self.mask_root, f))
+
+        rv_image = self.transform(image)
+        rv_mask = convert_img_to_2D_mask(transforms.ToTensor()(mask))
+
+        assert rv_image.shape[1:] == rv_mask.shape
+
+        return rv_image, rv_mask 
+
+
+    def _build_file_list(self, image_root, mask_root):
+        '''
+        Helper function to make sure files are consistent 
+        across masks and images
+        '''
+
+        image_files = os.listdir(image_root)
+        mask_files = os.listdir(mask_root)
+        assert image_files == mask_files
+
+        return image_files 
+
+
+def convert_img_to_2D_mask(tensor_img):
+    '''
+    Helper function which converts a 3D mask stored as a Tensor
+    to a 2D binary Tensor mask
+
+    Inputs:
+        tensor_img: 3D Tensor
+    Returns:
+        tensor_mask: 2D binary mask
+    '''
+
+    # Check that masks are consistent across the channel dimension
+    assert tensor_img.std(dim=0).max().item() == 0  # Channels are redundant
+    assert tensor_img.max() in (0,1)                # Vals are always either 0 or 1
+    assert tensor_img.min() in (0,1)                # Vals are always either 0 or 1
+
+    return tensor_img[0,:,:]
+
+def get_batch(dataloader_dict, d_type):
+    '''
+    Just a helper function, fetches an example from the dataloader
+    specified to allow for easier debugging
+    '''
+
+    for data in dataloader_dict[d_type]:
+        break
+
+    return data
+
+def build_dataloader_dict(data_root, batch_size, list_of_transforms=None):
+    '''
+    Once you specify the data_root, will return a dictionary
+    containing train and val dataloaders
+    '''
+    if list_of_transforms is None:
+        trans = transforms.ToTensor()
+    else:
+        #assert transforms[-1] == transforms.ToTensor()
+        trans = transforms.Compose(list_of_transforms)
+
+    train_data = datasets.ImageFolder(os.path.join(data_root, "train"), transform=trans)
+    val_data = datasets.ImageFolder(os.path.join(data_root, "val"), transform=transforms.ToTensor())
+
+    train_dataloader = utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
+    val_dataloader = utils.data.DataLoader(val_data, batch_size=batch_size, shuffle=True)
+
+    dataloader_dict = {'val': val_dataloader, 'train': train_dataloader}
+
+    return dataloader_dict
+
+def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer, verbose=False):
+    print("Starting training loop...\n")
+    print("Model's device = {}".format(model.my_device))
+
+    device = model.my_device
+
+    # Save a copy of the weights, before we start training
+    begin_model_wts = copy.deepcopy(model.state_dict())
+
+    # Initialize loss dict to record training, figures are per epoch
+    epoch_loss_dict = {'train': {'acc': [], 'loss':[]}, 'val': {'acc': [], 'loss':[]}}
+
+    # For each epoch
+    for epoch in range(num_epochs):
+        # Each epoch has training and validation phase
+        for phase in ['train', 'val']:
+            begin_epoch_time = time.time()
+            if phase == 'train':
+                model.train()
+            else:
+                model.eval()
+
+            running_loss = 0.0
+            #running_corrects = 0
+            total_obs = 0
+
+            # For each mini-batch in the dataloader
+            for i, data in enumerate(dataloader_dict[phase]):
+
+                images, target = data
+                target = torch.tensor(target, dtype=torch.float32, device=device)
+                images = images.to(device)
+
+                batch_size = target.shape[0]
+                total_obs += batch_size
+                
+                # Zero the gradients
+                model.zero_grad()
+                # Forward pass -- reshape output to be like the target (has extra 1D dimension)
+                output = model(images)
+                output = output.view(target.shape)
+
+                #preds = torch.round(output)
+                
+                #print("avg output={}".format(output.sum()/output.shape[0]))
+
+                # Calculate loss
+                error = criterion(output, target)
+                # correct = preds==target
+                # incorrect = preds!=target
+                # correct_count = torch.sum(correct)
+
+                # Make detailed output if verbose
+                verbose_str = ""
+                if verbose:
+                    pass 
+
+                # Training steps
+                if phase == 'train':
+                    # Backpropogate the error
+                    error.backward()
+                    # Take optimizer step
+                    optimizer.step()
+
+                # The error is divided by the batch size, so reverse this
+                running_loss += error.item() * batch_size
+                #running_corrects += correct_count 
+
+                print('%s - [%d/%d][%d/%d]\tError: %.4f\t' % 
+                    (phase, epoch, num_epochs, i, len(dataloader_dict[phase]), error.item()))
+            epoch_loss = running_loss / total_obs
+            epoch_acc = 0.5
+            #epoch_acc = (running_corrects.double() / total_obs).item()
+
+            # Add to our epoch_loss_dict
+            #epoch_loss_dict[phase]['acc'].append(epoch_acc)
+            epoch_loss_dict[phase]['loss'].append(epoch_loss)
+
+            print("\nPHASE={} EPOCH={} TIME={} LOSS={} ACC={}\n".format(phase, 
+                epoch, time.time()-begin_epoch_time, epoch_loss, epoch_acc))
+
+
+    return model, begin_model_wts, epoch_loss_dict 
+
+
+
+# img_size = 572
+img_size = 128
+# x0 = torch.randn(1, 3, img_size, img_size)
+
+# Define network
+net = segNet(img_size)
+# x1, x2, x3 = net.encoder_pass(x0)
+# print(x0.shape)
+# print(x1.shape)
+# print(x2.shape)
+# print(x3.shape)
+
+
+#y = net.encoder_pass(x1)
+
+# Define dataloaders
+NUM_EPOCHS = 2
+BATCH_SIZE = 2
+data_root =  "/home/cooper/Documents/MA_thesis/data/training_data/segmentation/size_128"
+train_root = os.path.join(data_root, "train")
+val_root = os.path.join(data_root, "val")
+
+train_dset = SegmentationDataset(train_root)
+val_dset = SegmentationDataset(val_root)
+
+train_dset_loader = utils.data.DataLoader(train_dset, batch_size=BATCH_SIZE, shuffle=True)
+val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
+
+dset_loader_dict = {'train':train_dset_loader, 'val':val_dset_loader}
+
+criterion_loss = nn.BCELoss()
+
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+net = net.to(device)
+optimizer = optim.Adam(net.parameters())
+
+#trained_net, begin_net_wts, epoch_loss_dict = train_segmentation(net, NUM_EPOCHS, dset_loader_dict, criterion_loss, optimizer)
+
