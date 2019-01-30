@@ -255,9 +255,9 @@ def train_model(model, num_epochs, dataloader_dict, criterion, optimizer, verbos
                 running_loss += error.item() * batch_size
                 running_corrects += correct_count 
 
-                print('%s - [%d/%d][%d/%d]\tError: %.4f\tAccuracy: %d/%d\t%s' % 
-                    (phase, epoch, num_epochs, i, len(dataloader_dict[phase]), 
-                        error.item(), correct_count, batch_size, verbose_str))
+                # print('%s - [%d/%d][%d/%d]\tError: %.4f\tAccuracy: %d/%d\t%s' % 
+                #     (phase, epoch, num_epochs, i, len(dataloader_dict[phase]), 
+                #         error.item(), correct_count, batch_size, verbose_str))
             epoch_loss = running_loss / total_obs
             epoch_acc = (running_corrects.double() / total_obs).item()
             
