@@ -11,6 +11,12 @@ import pandas as pd
 import numpy as np 
 
 from PIL import Image 
+import sys
+import json 
+
+# Import our utilities module
+sys.path.append('../')
+from utilities import cnn_utils, transform_utils
 
 EPOCH_COUNT = 1
 BATCH_SIZE = 16
@@ -122,13 +128,15 @@ class SegmentationDataset(utils.data.Dataset):
     Class defines segmentation (ie image with mask) dataset
     '''
 
-    def __init__(self, root_path, list_of_transforms=None):
-
+    def __init__(self, root_path, list_common_trans=None, list_img_trans=None):
+        '''NOTE: transforms should be TENSOR transforms, and the PIL->Tensor transform is 
+        already included
+        '''
         self.image_root = os.path.join(root_path, "image")
         self.mask_root = os.path.join(root_path, "mask")
         self.files = self._build_file_list(self.image_root, self.mask_root)
-        self.transform = transforms.ToTensor() if list_of_transforms is None else transforms.Compose(list_of_transforms) 
-
+        self.list_common_trans = list_common_trans
+        self.list_img_trans = list_img_trans
 
     def __len__(self):
         return len(self.files)
@@ -137,15 +145,38 @@ class SegmentationDataset(utils.data.Dataset):
 
         f = self.files[index]
 
-        image = Image.open(os.path.join(self.image_root, f))
-        mask = Image.open(os.path.join(self.mask_root, f))
+        # Load image and mask, convert to Tensors
+        image = transforms.ToTensor()(Image.open(os.path.join(self.image_root, f)))
+        mask = transforms.ToTensor()(Image.open(os.path.join(self.mask_root, f)))
 
-        rv_image = self.transform(image)
-        rv_mask = convert_img_to_2D_mask(transforms.ToTensor()(mask))
+        # Join the image and mask, so random transforms can be applied consistently
+        if self.list_common_trans is not None:
+            image_channels = image.shape[0]
+            mask_channels = mask.shape[0]
 
-        assert rv_image.shape[1:] == rv_mask.shape
+            # Stack along the channel dimension
+            image_mask_combined = torch.cat((image, mask), 0)
 
-        return rv_image, rv_mask 
+            # Apply common tranforms
+            for t in self.list_common_trans:
+                image_mask_combined = t(image_mask_combined)
+
+            image_mask_combined = torch.Tensor(image_mask_combined)
+            assert image_mask_combined.shape[1:] == image.shape[1:]
+            
+            # Split back out
+            image = image_mask_combined[0:image_channels,:,:]
+            mask = image_mask_combined[image_channels:,:,:]
+
+        # Apply the image only transforms
+        if self.list_img_trans is not None:
+            image = transforms.Compose(self.list_img_trans)(image)
+
+        mask = convert_img_to_2D_mask(mask)
+
+        assert image.shape[1:] == mask.shape
+
+        return image, mask 
 
 
     def _build_file_list(self, image_root, mask_root):
@@ -190,26 +221,6 @@ def get_batch(dataloader_dict, d_type):
 
     return data
 
-def build_dataloader_dict(data_root, batch_size, list_of_transforms=None):
-    '''
-    Once you specify the data_root, will return a dictionary
-    containing train and val dataloaders
-    '''
-    if list_of_transforms is None:
-        trans = transforms.ToTensor()
-    else:
-        #assert transforms[-1] == transforms.ToTensor()
-        trans = transforms.Compose(list_of_transforms)
-
-    train_data = datasets.ImageFolder(os.path.join(data_root, "train"), transform=trans)
-    val_data = datasets.ImageFolder(os.path.join(data_root, "val"), transform=transforms.ToTensor())
-
-    train_dataloader = utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    val_dataloader = utils.data.DataLoader(val_data, batch_size=batch_size, shuffle=True)
-
-    dataloader_dict = {'val': val_dataloader, 'train': train_dataloader}
-
-    return dataloader_dict
 
 def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer, verbose=False):
     print("Starting training loop...\n")
@@ -303,6 +314,11 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
 
     return model, best_model_wts, epoch_loss_dict 
 
+# Define trasnforms
+# common_transforms = [transform_utils.RandomHorizontalFlip(0.5), 
+#                      transform_utils.RandomVerticalFlip(0.5)]
+#img_transforms = [transforms.ColorJitter()]
+common_transforms = None 
 
 # Define network
 net = segNet(img_size)
@@ -311,7 +327,8 @@ net = segNet(img_size)
 train_root = os.path.join(data_root, "train")
 val_root = os.path.join(data_root, "val")
 
-train_dset = SegmentationDataset(train_root)
+train_dset = SegmentationDataset(train_root, list_common_trans=common_transforms,
+                                 list_img_trans=None)
 val_dset = SegmentationDataset(val_root)
 
 train_dset_loader = utils.data.DataLoader(train_dset, batch_size=BATCH_SIZE, shuffle=True)
@@ -325,13 +342,22 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 net = net.to(device)
 optimizer = optim.Adam(net.parameters())
 
-trained_net, best_model_wts, epoch_loss_dict = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
+
+#trained_net, best_model_wts, epoch_loss_dict = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
+training_hist = {'test':[1,2]}
+model_details = '''This 
+are the specs of a model'''
+
+cnn_utils.save_model(net, "test_model", net.state_dict(), training_hist, model_details, root)
+
+
 
 # Save out
-f = 'seg_model.pt'
-training_f = 'seg_training_hist.json'
 
-torch.save(best_wts, os.path.join(root, f))
-with open(os.path.join(root,training_f), 'w') as fp:
-    json.dump(epoch_loss_dict, fp)
+# f = 'seg_model.pt'
+# training_f = 'seg_training_hist.json'
+
+# torch.save(best_wts, os.path.join(root, f))
+# with open(os.path.join(root,training_f), 'w') as fp:
+#     json.dump(epoch_loss_dict, fp)
 

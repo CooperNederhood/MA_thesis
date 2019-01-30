@@ -13,6 +13,36 @@ import numpy as np
 from PIL import Image 
 from collections import OrderedDict
 import matplotlib.pyplot as plt 
+import json 
+
+def save_model(model, model_name, state_dict, training_hist, model_details, root_path):
+
+    # Store everything in folder of the model name
+    path = os.path.join(root_path, model_name)
+    if not os.path.isdir(path):
+        os.mkdir(path)
+
+    # Save state dict
+    torch.save(state_dict, os.path.join(path, 'model.pt') )
+
+    # Save training history
+    with open(os.path.join(path, 'training_hist.json'), 'w') as fp:
+        json.dump(training_hist, fp)
+
+    # Write out details of the model
+    with open(os.path.join(path, 'Model_specs.txt'), 'w') as fp:
+        fp.write("*****"*10)
+        fp.write("\n")
+        fp.write("MODEL NOTES:")
+        fp.write(model_details)
+        fp.write("\n\n")
+        fp.write("*****"*10)
+        fp.write("\n")
+        fp.write("MODEL STRUCTURE:")
+        fp.write(model.__str__())
+
+
+
 
 def plot_training_dict(training_dict):
     epoch_list = range(25)
