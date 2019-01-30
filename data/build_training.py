@@ -216,6 +216,7 @@ def train_val_split_segmentation(train_pct):
 def train_val_split_classification(target_folder, train_pct):
     '''
     NOTE: using 80% for training data
+    NOTE: needs to be called twice, once targeted at 'slum' and once at 'nonslum'
     The function build_training_data just creates the two broad classes
     but does not do a training/validation split. Thus, import this function,
     then change to the directory where the data is and point using the target_folder

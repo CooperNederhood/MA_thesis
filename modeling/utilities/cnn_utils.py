@@ -14,6 +14,18 @@ from PIL import Image
 from collections import OrderedDict
 import matplotlib.pyplot as plt 
 
+def plot_training_dict(training_dict):
+    epoch_list = range(25)
+    plt.plot(epoch_list, epoch_loss_dict['train']['loss'], label='train')
+    plt.plot(epoch_list, epoch_loss_dict['val']['loss'], label='val')
+    plt.legend()
+
+    plt.clf()
+    plt.plot(epoch_list, epoch_loss_dict['train']['acc'], label='train')
+    plt.plot(epoch_list, epoch_loss_dict['val']['acc'], label='val')
+    plt.legend()
+        
+
 class ConvPass(nn.Module):
 
     '''

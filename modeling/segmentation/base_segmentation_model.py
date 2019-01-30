@@ -12,6 +12,21 @@ import numpy as np
 
 from PIL import Image 
 
+EPOCH_COUNT = 1
+BATCH_SIZE = 16
+CHANNELS = 3
+img_size = 128
+
+
+# Root directory for dataset
+root = '../../data/training_data'
+data_root = os.path.join(root, "segmentation/size_128")
+
+# Check whether GPU is enabled
+torch.cuda.is_available()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
+
 class segNet(nn.Module):
 
     def __init__(self, img_size):
@@ -202,11 +217,13 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
 
     device = model.my_device
 
-    # Save a copy of the weights, before we start training
-    begin_model_wts = copy.deepcopy(model.state_dict())
+    # Track best model
+    best_model_wts = copy.deepcopy(model.state_dict())
+    current_best_loss = 1000
 
     # Initialize loss dict to record training, figures are per epoch
-    epoch_loss_dict = {'train': {'acc': [], 'loss':[]}, 'val': {'acc': [], 'loss':[]}}
+    epoch_loss_dict = {'train': {'acc': [], 'loss':[], 'time':[]}, 
+                         'val': {'acc': [], 'loss':[], 'time':[]}}
 
     # For each epoch
     for epoch in range(num_epochs):
@@ -270,37 +287,27 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
             epoch_acc = 0.5
             #epoch_acc = (running_corrects.double() / total_obs).item()
 
+            if epoch_loss < current_best_loss:
+                current_best_loss = epoch_loss
+                best_model_wts = copy.deepcopy(model.state_dict())
+
+            t = time.time()-begin_epoch_time
             # Add to our epoch_loss_dict
-            #epoch_loss_dict[phase]['acc'].append(epoch_acc)
+            epoch_loss_dict[phase]['acc'].append(epoch_acc)
             epoch_loss_dict[phase]['loss'].append(epoch_loss)
+            epoch_loss_dict[phase]['time'].append(t)
 
             print("\nPHASE={} EPOCH={} TIME={} LOSS={} ACC={}\n".format(phase, 
-                epoch, time.time()-begin_epoch_time, epoch_loss, epoch_acc))
+                epoch, t, epoch_loss, epoch_acc))
 
 
-    return model, begin_model_wts, epoch_loss_dict 
+    return model, best_model_wts, epoch_loss_dict 
 
-
-
-# img_size = 572
-img_size = 128
-# x0 = torch.randn(1, 3, img_size, img_size)
 
 # Define network
 net = segNet(img_size)
-# x1, x2, x3 = net.encoder_pass(x0)
-# print(x0.shape)
-# print(x1.shape)
-# print(x2.shape)
-# print(x3.shape)
-
-
-#y = net.encoder_pass(x1)
 
 # Define dataloaders
-NUM_EPOCHS = 2
-BATCH_SIZE = 2
-data_root =  "/home/cooper/Documents/MA_thesis/data/training_data/segmentation/size_128"
 train_root = os.path.join(data_root, "train")
 val_root = os.path.join(data_root, "val")
 
@@ -318,5 +325,13 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 net = net.to(device)
 optimizer = optim.Adam(net.parameters())
 
-#trained_net, begin_net_wts, epoch_loss_dict = train_segmentation(net, NUM_EPOCHS, dset_loader_dict, criterion_loss, optimizer)
+trained_net, best_model_wts, epoch_loss_dict = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
+
+# Save out
+f = 'seg_model.pt'
+training_f = 'seg_training_hist.json'
+
+torch.save(best_wts, os.path.join(root, f))
+with open(os.path.join(root,training_f), 'w') as fp:
+    json.dump(epoch_loss_dict, fp)
 
