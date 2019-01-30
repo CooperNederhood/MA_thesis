@@ -16,6 +16,10 @@ import matplotlib.pyplot as plt
 
 import json
 
+EPOCH_COUNT = 1
+CHANNELS = 3
+img_size = 128
+
 
 # Root directory for dataset
 root = '../../data/training_data'
@@ -82,6 +86,7 @@ class FullyConnectedClassifyNet(nn.Module):
         super(FullyConnectedClassifyNet, self).__init__()
 
         self.dout_rate = 0.5
+        self.my_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         self.fc1 = nn.Linear(begin_len, 400)
         self.activ1 = nn.ReLU()
@@ -101,15 +106,19 @@ class classifyNet(nn.Module):
     def __init__(self, input_channels, img_size):
         super(classifyNet, self).__init__()
 
-         # Define the forward pass
-        self.conv_net = ConvPass(input_channelsS, img_size)
+        # Define the forward pass
+        self.my_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        
+        self.input_channels = input_channels
+        self.img_size = img_size
+        self.conv_net = ConvPassClassifyNet(input_channels, img_size)
 
         # Determine dimension of flattened input to fully-connected net
         self.conv_end_ft_count = self._determine_ft_count(img_size)
         print(self._determine_ft_count(img_size))
 
         # Define FC layers
-        self.class_net = FullyConnectedClassifier(self.conv_end_ft_count)
+        self.class_net = FullyConnectedClassifyNet(self.conv_end_ft_count)
 
     def _determine_ft_count(self, img_size):
         '''
@@ -117,7 +126,7 @@ class classifyNet(nn.Module):
         the end of our convolutional base
         '''
 
-        example = torch.randn(1, self.INPUT_CHANNELS, img_size, img_size)
+        example = torch.randn(1, self.input_channels, img_size, img_size)
         conv_example = self.conv_net(example)
         
         return self.num_flat_features(conv_example)
@@ -266,11 +275,8 @@ def train_model(model, num_epochs, dataloader_dict, criterion, optimizer, verbos
 
     return model, best_model_wts, epoch_loss_dict
 
-EPOCH_COUNT = 25
-img_size = 128
-
 # Define network
-net = classifyNet(img_size)
+net = classifyNet(CHANNELS, img_size)
 
 # Define dataloaders
 #data_root =  "/home/cooper/Documents/MA_thesis/data/training_data/classification/size_128"
