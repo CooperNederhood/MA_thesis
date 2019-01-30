@@ -75,7 +75,7 @@ def determine_image_class(mask, threshold):
 
 
 
-def build_training_data(pic_size, step_size, class_threshold, 
+def build_training_data(zoom_level, pic_size, step_size, class_threshold, 
     mask_path, slum_image_path, nonslum_image_path):
     '''
     Given a desired picture output size, a threshold to determine what % of pixels
@@ -245,12 +245,13 @@ def train_val_split_classification(target_folder, train_pct):
 if __name__ == "__main__":
     pic_size = 128
     step_size = 128 
+    zoom_level = 18
     class_threshold = .1
     mask_path = "labelbox/masks"
     slum_image_path = "google_earth/zoom_18/slums"
     nonslum_image_path = "google_earth/zoom_18/not_slums"
 
-    build_training_data(pic_size, step_size, class_threshold, 
+    build_training_data(zoom_level, pic_size, step_size, class_threshold, 
         mask_path, slum_image_path, nonslum_image_path)
 
 

@@ -10,26 +10,106 @@ import copy
 import pandas as pd 
 import numpy as np 
 
-class classifyNet(nn.Module):
+from PIL import Image 
+from collections import OrderedDict
+import matplotlib.pyplot as plt 
 
-    def __init__(self, img_size):
-        super(classifyNet, self).__init__()
+import json
 
+
+# Root directory for dataset
+root = '../../data/training_data'
+data_root = os.path.join(root, "classification/size_128")
+
+# Check whether GPU is enabled
+torch.cuda.is_available()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
+
+"""# Begin script"""
+class ConvPassClassifyNet(nn.Module):
+
+    '''
+    Implement a basic sequential forward pass
+    '''
+
+    def __init__(self, input_channels, img_size):
+        super(ConvPassClassifyNet, self).__init__()
+
+        self.input_channels = input_channels
         self.my_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.conv1 = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3)
+        # Define convolutional layers
+        self.conv1 = nn.Conv2d(in_channels=self.input_channels, out_channels=32, kernel_size=3)
+        self.relu1 = nn.ReLU()
+        self.maxpool1 = nn.MaxPool2d((2,2))
+
         self.conv2 = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3)
+        self.relu2 = nn.ReLU()
+        self.maxpool2 = nn.MaxPool2d((2,2))
+
         self.conv3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3)
-        #self.conv4 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3)
+        self.relu3 = nn.ReLU()
+        self.maxpool3 = nn.MaxPool2d((2,2))
 
-        # To correct initialize the fc1 layer, we need to know the output size
-        #        of the last convolutional layer
+    def forward(self, x):
+
+        for name, layer in self.named_children():
+            x = layer(x)
+
+        return x        
+
+    def get_layer_output(self, x, layer_name):
+        '''
+        Exits forward pass early and returns the 
+        specified layer
+        '''
+
+        for name, layer in self.named_children():
+            x = layer(x)
+            if name == layer_name:
+                return x
+
+        print("Desired error not found -- forward pass completed")
+        return x 
+
+class FullyConnectedClassifyNet(nn.Module):
+    '''
+    Implement a basic full-connected classification model
+    '''
+
+    def __init__(self, begin_len):
+        super(FullyConnectedClassifyNet, self).__init__()
+
+        self.dout_rate = 0.5
+
+        self.fc1 = nn.Linear(begin_len, 400)
+        self.activ1 = nn.ReLU()
+        self.dropout1 = nn.Dropout(self.dout_rate)
+
+        self.fc2 = nn.Linear(400, 1)
+        self.activ2 = nn.Sigmoid()
+
+    def forward(self, x):
+
+        for layer in self.children():
+            x = layer(x)
+        return x 
+
+class classifyNet(nn.Module):
+
+    def __init__(self, input_channels, img_size):
+        super(classifyNet, self).__init__()
+
+         # Define the forward pass
+        self.conv_net = ConvPass(input_channelsS, img_size)
+
+        # Determine dimension of flattened input to fully-connected net
         self.conv_end_ft_count = self._determine_ft_count(img_size)
+        print(self._determine_ft_count(img_size))
 
-        self.fc1 = nn.Linear(self.conv_end_ft_count, 1)
-        #self.fc2 = nn.Linear(400, 200)
-        #self.fc3 = nn.Linear(200, 1)
-
+        # Define FC layers
+        self.class_net = FullyConnectedClassifier(self.conv_end_ft_count)
 
     def _determine_ft_count(self, img_size):
         '''
@@ -37,38 +117,15 @@ class classifyNet(nn.Module):
         the end of our convolutional base
         '''
 
-        example = torch.randn(1, 3, img_size, img_size)
-        conv_example = self.forward_convolutional(example)
+        example = torch.randn(1, self.INPUT_CHANNELS, img_size, img_size)
+        conv_example = self.conv_net(example)
+        
         return self.num_flat_features(conv_example)
 
-
-    def forward_convolutional(self, x):
-        '''
-        Does the forward pass of our convolutional base
-        '''
-        x = F.max_pool2d(F.relu(self.conv1(x)), (2,2))
-        x = F.max_pool2d(F.relu(self.conv2(x)), (2,2))
-        x = F.max_pool2d(F.relu(self.conv3(x)), (2,2))
-        #x = F.max_pool2d(F.relu(self.conv4(x)), (2,2))
-
-        return x 
-
-    def forward_fully_connected(self, x):
-        '''
-        Does the forward pass of our fully-connected 
-        part of the model
-        '''     
-        x = F.sigmoid(self.fc1(x))
-        #x = F.relu(self.fc2(x))
-        #x = F.sigmoid(self.fc3(x))
-
-        return x    
-
-
     def forward(self, x):
-        x = self.forward_convolutional(x)
+        x = self.conv_net(x)
         x = x.view(-1, self.num_flat_features(x))
-        x = self.forward_fully_connected(x)
+        x = self.class_net(x)
 
         return x 
 
@@ -94,8 +151,8 @@ def build_dataloader_dict(data_root, batch_size, list_of_transforms=None):
     train_data = datasets.ImageFolder(os.path.join(data_root, "train"), transform=trans)
     val_data = datasets.ImageFolder(os.path.join(data_root, "val"), transform=transforms.ToTensor())
 
-    train_dataloader = utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
-    val_dataloader = utils.data.DataLoader(val_data, batch_size=batch_size, shuffle=True)
+    train_dataloader = utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True, num_workers=4)
+    val_dataloader = utils.data.DataLoader(val_data, batch_size=batch_size, shuffle=True, num_workers=4)
 
     dataloader_dict = {'val': val_dataloader, 'train': train_dataloader}
 
@@ -112,35 +169,21 @@ def get_batch(dataloader_dict, d_type):
 
     return data
 
-img_size = 128
-x1 = torch.randn(1, 3, img_size, img_size)
-
-# Define network
-net = classifyNet(img_size)
-
-# Define dataloaders
-data_root =  "/home/cooper/Documents/MA_thesis/data/training_data/classification/size_128"
-dataloader_dict = build_dataloader_dict(data_root, 16)
-
-# Define criterion function
-criterion = nn.BCELoss()
-
-# Define optimizer
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-net = net.to(device)
-optimizer = optim.Adam(net.parameters())
 
 def train_model(model, num_epochs, dataloader_dict, criterion, optimizer, verbose=False):
     print("Starting training loop...\n")
-    print("Model's device = {}".format(model.device))
+    print("Model's device = {}".format(model.my_device))
 
     device = model.my_device
 
     # Save a copy of the weights, before we start training
-    begin_model_wts = copy.deepcopy(model.state_dict())
+    #begin_model_wts = copy.deepcopy(model.state_dict())
+    best_model_wts = copy.deepcopy(model.state_dict())
+    current_best_acc = 1000
 
     # Initialize loss dict to record training, figures are per epoch
-    epoch_loss_dict = {'train': {'acc': [], 'loss':[]}, 'val': {'acc': [], 'loss':[]}}
+    epoch_loss_dict = {'train': {'acc': [], 'loss':[], 'time':[]}, 
+        'val': {'acc': [], 'loss':[], 'time':[]}}
 
     # For each epoch
     for epoch in range(num_epochs):
@@ -174,8 +217,6 @@ def train_model(model, num_epochs, dataloader_dict, criterion, optimizer, verbos
 
                 preds = torch.round(output)
                 
-                #print("avg output={}".format(output.sum()/output.shape[0]))
-
                 # Calculate loss
                 error = criterion(output, target)
                 correct = preds==target
@@ -193,19 +234,6 @@ def train_model(model, num_epochs, dataloader_dict, criterion, optimizer, verbos
                     df_m = df.groupby(by=['preds', 'target']).mean().reset_index()
                     print(df_c)
                     print(df_m)
-                    # p0t0_c = df_c[(df_c.preds==0)&(df_c.target==0)].output.item()
-                    # p1t1_c = df_c[(df_c.preds==1)&(df_c.target==1)].output.item()
-                    # p0t1_c = df_c[(df_c.preds==0)&(df_c.target==1)].output.item()
-                    # p1t0_c = df_c[(df_c.preds==1)&(df_c.target==0)].output.item()
-
-                    # p0t0_m = df_m[(df_m.preds==0)&(df_m.target==0)].output.item()
-                    # p1t1_m = df_m[(df_m.preds==1)&(df_m.target==1)].output.item()
-                    # p0t1_m = df_m[(df_m.preds==0)&(df_m.target==1)].output.item()
-                    # p1t0_m = df_m[(df_m.preds==1)&(df_m.target==0)].output.item()
-
-                    # verbose_str = "Counts: p0t0={};p1t1={};p0t1={};p1t0={}\tMeans:p0t0={};p1t1={};p0t1={};p1t0={}".format(
-                    #     p0t0_c, p1t1_c, p0t1_c, p1t0_c, p0t0_m, p1t1_m, p0t1_m, p1t0_m)
-
 
                 # Training steps
                 if phase == 'train':
@@ -223,6 +251,10 @@ def train_model(model, num_epochs, dataloader_dict, criterion, optimizer, verbos
                         error.item(), correct_count, batch_size, verbose_str))
             epoch_loss = running_loss / total_obs
             epoch_acc = (running_corrects.double() / total_obs).item()
+            
+            if epoch_acc < current_best_acc:
+              current_best_acc = epoch_acc
+              best_model_wts = copy.deepcopy(model.state_dict())
 
             # Add to our epoch_loss_dict
             epoch_loss_dict[phase]['acc'].append(epoch_acc)
@@ -232,15 +264,39 @@ def train_model(model, num_epochs, dataloader_dict, criterion, optimizer, verbos
                 epoch, time.time()-begin_epoch_time, epoch_loss, epoch_acc))
             
 
-    return model, begin_model_wts, epoch_loss_dict 
+    return model, best_model_wts, epoch_loss_dict
 
+EPOCH_COUNT = 25
+img_size = 128
 
-#trained_model, begin_wts, epoch_loss_dict = train_model(net, 1, dataloader_dict, criterion, optimizer, verbose=True)
+# Define network
+net = classifyNet(img_size)
 
+# Define dataloaders
+#data_root =  "/home/cooper/Documents/MA_thesis/data/training_data/classification/size_128"
+trans_list = [transforms.RandomHorizontalFlip(0.5), transforms.RandomVerticalFlip(0.5), transforms.ToTensor()]
+dataloader_dict = build_dataloader_dict(data_root, 16, trans_list)
 
+# Define criterion function
+criterion = nn.BCELoss()
 
-# output = net(x1)
-# loss = criterion(output, target)
-# loss.backward()
-# optimizer.step()
+# Define optimizer
+net = net.to(device)
+optimizer = optim.Adam(net.parameters())
+
+print(net)
+print(device)
+
+net.my_device
+
+trained_model, best_wts, epoch_loss_dict = train_model(net, EPOCH_COUNT, dataloader_dict, criterion, optimizer)
+
+# Save out
+f = 'model.pt'
+training_f = 'training_hist.json'
+
+torch.save(best_wts, os.path.join(root, f))
+with open(os.path.join(root,training_f), 'w') as fp:
+  json.dump(epoch_loss_dict, fp)
+
 

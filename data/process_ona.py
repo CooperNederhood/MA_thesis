@@ -88,15 +88,6 @@ def get_image_for_ona(ona_id, dataframe, output_dict, fails):
 
 
 
-# d = {}
-# fails = []
-# for i in range(df_lagos.shape[0]):
-#     print("Processing row = ", i)
-#     try:
-#         process_coords(i, df_lagos, d)
-#     except:
-#         fails.append(i)
-
 if __name__ == "__main__":
 
     # Just clean the raw Ona file, keep Lagos only, save out for posterity
