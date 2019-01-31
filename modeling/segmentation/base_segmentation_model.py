@@ -14,15 +14,16 @@ from PIL import Image
 import sys
 import json 
 
-MODEL_NAME = "model_name"
-MODEL_DETAILS = '''
+MODEL_NAME = "seg_base"
+MODEL_DETAILS = '''Base segmentation model, using truncated U-Net structure. Adding random hor/ver flips to training images
+EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=128
 '''
 
 # Import our utilities module
 sys.path.append('../')
 from utilities import cnn_utils, transform_utils
 
-EPOCH_COUNT = 1
+EPOCH_COUNT = 15
 BATCH_SIZE = 16
 CHANNELS = 3
 img_size = 128
@@ -298,8 +299,8 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
                 running_loss += error.item() * batch_size
                 #running_corrects += correct_count 
 
-                print('%s - [%d/%d][%d/%d]\tError: %.4f\t' % 
-                    (phase, epoch, num_epochs, i, len(dataloader_dict[phase]), error.item()))
+                #print('%s - [%d/%d][%d/%d]\tError: %.4f\t' % 
+                #    (phase, epoch, num_epochs, i, len(dataloader_dict[phase]), error.item()))
             epoch_loss = running_loss / total_obs
             epoch_acc = 0.5
             #epoch_acc = (running_corrects.double() / total_obs).item()
@@ -314,7 +315,7 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
             epoch_loss_dict[phase]['loss'].append(epoch_loss)
             epoch_loss_dict[phase]['time'].append(t)
 
-            print("\nPHASE={} EPOCH={} TIME={} LOSS={} ACC={}\n".format(phase, 
+            print("PHASE={} EPOCH={} TIME={} LOSS={} ACC={}".format(phase, 
                 epoch, t, epoch_loss, epoch_acc))
 
 
@@ -351,7 +352,7 @@ optimizer = optim.Adam(net.parameters())
 #     print("{} / {}".format(i, len(dset_loader_dict['train'])))
 
 
-#trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
+trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
 
 cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
 
