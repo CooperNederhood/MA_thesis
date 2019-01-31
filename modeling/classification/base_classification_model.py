@@ -14,9 +14,20 @@ from PIL import Image
 from collections import OrderedDict
 import matplotlib.pyplot as plt 
 
-import json
+import sys
+import json 
 
-EPOCH_COUNT = 1
+MODEL_NAME = "seg_base"
+MODEL_DETAILS = '''Base segmentation model, using truncated U-Net structure. Adding random hor/ver flips to training images
+EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=128
+'''
+
+# Import our utilities module
+sys.path.append('../')
+from utilities import cnn_utils, transform_utils
+
+EPOCH_COUNT = 25
+BATCH_SIZE = 16
 CHANNELS = 3
 img_size = 128
 
@@ -24,6 +35,8 @@ img_size = 128
 # Root directory for dataset
 root = '../../data/training_data'
 data_root = os.path.join(root, "classification/size_128")
+
+SAVE_ROOT = root 
 
 # Check whether GPU is enabled
 torch.cuda.is_available()
@@ -281,7 +294,7 @@ net = classifyNet(CHANNELS, img_size)
 # Define dataloaders
 #data_root =  "/home/cooper/Documents/MA_thesis/data/training_data/classification/size_128"
 trans_list = [transforms.RandomHorizontalFlip(0.5), transforms.RandomVerticalFlip(0.5), transforms.ToTensor()]
-dataloader_dict = build_dataloader_dict(data_root, 16, trans_list)
+dataloader_dict = build_dataloader_dict(data_root, BATCH_SIZE, trans_list)
 
 # Define criterion function
 criterion = nn.BCELoss()
@@ -295,14 +308,8 @@ print(device)
 
 net.my_device
 
-trained_model, best_wts, epoch_loss_dict = train_model(net, EPOCH_COUNT, dataloader_dict, criterion, optimizer)
+trained_model, best_model_wts, training_hist = train_model(net, EPOCH_COUNT, dataloader_dict, criterion, optimizer)
 
-# Save out
-f = 'model.pt'
-training_f = 'training_hist.json'
-
-torch.save(best_wts, os.path.join(root, f))
-with open(os.path.join(root,training_f), 'w') as fp:
-  json.dump(epoch_loss_dict, fp)
+cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
 
 
