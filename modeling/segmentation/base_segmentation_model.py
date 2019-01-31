@@ -122,7 +122,7 @@ class segNet(nn.Module):
         x1, x2, x3 = self.encoder_pass(x)
         x4, x5 = self.decoder_pass((x1,x2,x3))
 
-        segmented_image = F.sigmoid(self.final_conv(x5))
+        segmented_image = torch.sigmoid(self.final_conv(x5))
 
         assert segmented_image.shape[-2:] == x.shape[-2:] 
 
@@ -347,8 +347,8 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 net = net.to(device)
 optimizer = optim.Adam(net.parameters())
 
-for i, (x,y) in enumerate(dset_loader_dict['train']):
-    print("{} / {}".format(i, len(dset_loader_dict['train'])))
+# for i, (x,y) in enumerate(dset_loader_dict['train']):
+#     print("{} / {}".format(i, len(dset_loader_dict['train'])))
 
 
 #trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
