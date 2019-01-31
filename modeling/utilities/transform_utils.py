@@ -28,7 +28,10 @@ class RandomHorizontalFlip(object):
 		b = True if self.random_state.uniform(0,1) < self.p else False
 
 		if b:
-			return tensor_img.flip(dims=(2,))
+			# rv = scipy.ndimage.rotate(tensor_img, angle=180, axes=(1,2))
+			# rv = torch.Tensor(rv)
+			# return rv
+			return tensor_img.flip(dims=(1,))
 		else:
 			return tensor_img 
 
@@ -48,6 +51,9 @@ class RandomVerticalFlip(object):
 		b = True if self.random_state.uniform(0,1) < self.p else False
 
 		if b:
+			# rv = scipy.ndimage.rotate(tensor_img, angle=90, axes=(1,2))
+			# rv = torch.Tensor(rv)
+			# return rv
 			return tensor_img.flip(dims=(1,))
 		else:
 			return tensor_img 

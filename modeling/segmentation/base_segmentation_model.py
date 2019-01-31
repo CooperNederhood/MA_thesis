@@ -351,7 +351,7 @@ for i, (x,y) in enumerate(dset_loader_dict['train']):
     print("{} / {}".format(i, len(dset_loader_dict['train'])))
 
 
-trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
+#trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
 
 cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
 
