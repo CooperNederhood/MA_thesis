@@ -14,6 +14,7 @@ from PIL import Image
 from collections import OrderedDict
 import matplotlib.pyplot as plt 
 import json 
+import datetime 
 
 def save_model(model, model_name, state_dict, training_hist, model_details, root_path):
 
@@ -31,6 +32,9 @@ def save_model(model, model_name, state_dict, training_hist, model_details, root
 
     # Write out details of the model
     with open(os.path.join(path, 'Model_specs.txt'), 'w') as fp:
+        currentDT = datetime.datetime.now()
+        fp.write(currentDT.__str__())
+        fp.write("\n")
         fp.write("*****"*10)
         fp.write("\n")
         fp.write("MODEL NOTES:")

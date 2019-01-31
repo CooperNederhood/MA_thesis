@@ -14,6 +14,10 @@ from PIL import Image
 import sys
 import json 
 
+MODEL_NAME = "model_name"
+MODEL_DETAILS = '''
+'''
+
 # Import our utilities module
 sys.path.append('../')
 from utilities import cnn_utils, transform_utils
@@ -27,6 +31,8 @@ img_size = 128
 # Root directory for dataset
 root = '../../data/training_data'
 data_root = os.path.join(root, "segmentation/size_128")
+
+SAVE_ROOT = root 
 
 # Check whether GPU is enabled
 torch.cuda.is_available()
@@ -315,10 +321,9 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
     return model, best_model_wts, epoch_loss_dict 
 
 # Define trasnforms
-# common_transforms = [transform_utils.RandomHorizontalFlip(0.5), 
-#                      transform_utils.RandomVerticalFlip(0.5)]
+common_transforms = [transform_utils.RandomHorizontalFlip(0.5), 
+                     transform_utils.RandomVerticalFlip(0.5)]
 #img_transforms = [transforms.ColorJitter()]
-common_transforms = None 
 
 # Define network
 net = segNet(img_size)
@@ -342,14 +347,13 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 net = net.to(device)
 optimizer = optim.Adam(net.parameters())
 
+for i, (x,y) in enumerate(dset_loader_dict['train']):
+    print("{} / {}".format(i, len(dset_loader_dict['train'])))
 
-#trained_net, best_model_wts, epoch_loss_dict = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
-training_hist = {'test':[1,2]}
-model_details = '''This 
-are the specs of a model'''
 
-cnn_utils.save_model(net, "test_model", net.state_dict(), training_hist, model_details, root)
+trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
 
+cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
 
 
 # Save out

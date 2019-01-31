@@ -26,13 +26,9 @@ class RandomHorizontalFlip(object):
 	def __call__(self, tensor_img):
 
 		b = True if self.random_state.uniform(0,1) < self.p else False
-		print("Flipping = ", b)
 
 		if b:
-			rv = torch.as_tensor(np.flip(tensor_img, axis=1))
-			assert rv.shape == tensor_img.shape
-			assert isinstance(rv, torch.Tensor)
-			return rv
+			return tensor_img.flip(dims=(2,))
 		else:
 			return tensor_img 
 
@@ -50,12 +46,8 @@ class RandomVerticalFlip(object):
 	def __call__(self, tensor_img):
 
 		b = True if self.random_state.uniform(0,1) < self.p else False
-		print("Flipping = ", b)
 
 		if b:
-			rv = torch.as_tensor(np.flip(tensor_img, axis=2))
-			assert rv.shape == tensor_img.shape
-			assert isinstance(rv, torch.Tensor)
-			return rv
+			return tensor_img.flip(dims=(1,))
 		else:
 			return tensor_img 
