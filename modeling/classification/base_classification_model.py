@@ -17,8 +17,8 @@ import matplotlib.pyplot as plt
 import sys
 import json 
 
-MODEL_NAME = "seg_base"
-MODEL_DETAILS = '''Base segmentation model, using truncated U-Net structure. Adding random hor/ver flips to training images
+MODEL_NAME = "class_base"
+MODEL_DETAILS = '''Base classification model. Adding random hor/ver flips to training images
 EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=128
 '''
 
