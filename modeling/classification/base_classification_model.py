@@ -24,7 +24,7 @@ EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=128
 
 # Import our utilities module
 sys.path.append('../')
-from utilities import cnn_utils, transform_utils
+#from utilities import cnn_utils, transform_utils
 
 EPOCH_COUNT = 25
 BATCH_SIZE = 16
@@ -289,27 +289,29 @@ def train_model(model, num_epochs, dataloader_dict, criterion, optimizer, verbos
     return model, best_model_wts, epoch_loss_dict
 
 # Define network
-net = classifyNet(CHANNELS, img_size)
 
-# Define dataloaders
-#data_root =  "/home/cooper/Documents/MA_thesis/data/training_data/classification/size_128"
-trans_list = [transforms.RandomHorizontalFlip(0.5), transforms.RandomVerticalFlip(0.5), transforms.ToTensor()]
-dataloader_dict = build_dataloader_dict(data_root, BATCH_SIZE, trans_list)
+if __name__ == "__main__":
+    net = classifyNet(CHANNELS, img_size)
 
-# Define criterion function
-criterion = nn.BCELoss()
+    # Define dataloaders
+    #data_root =  "/home/cooper/Documents/MA_thesis/data/training_data/classification/size_128"
+    trans_list = [transforms.RandomHorizontalFlip(0.5), transforms.RandomVerticalFlip(0.5), transforms.ToTensor()]
+    dataloader_dict = build_dataloader_dict(data_root, BATCH_SIZE, trans_list)
 
-# Define optimizer
-net = net.to(device)
-optimizer = optim.Adam(net.parameters())
+    # Define criterion function
+    criterion = nn.BCELoss()
 
-print(net)
-print(device)
+    # Define optimizer
+    net = net.to(device)
+    optimizer = optim.Adam(net.parameters())
 
-net.my_device
+    print(net)
+    print(device)
 
-trained_model, best_model_wts, training_hist = train_model(net, EPOCH_COUNT, dataloader_dict, criterion, optimizer)
+    net.my_device
 
-cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
+    trained_model, best_model_wts, training_hist = train_model(net, EPOCH_COUNT, dataloader_dict, criterion, optimizer)
+
+    cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
 
 

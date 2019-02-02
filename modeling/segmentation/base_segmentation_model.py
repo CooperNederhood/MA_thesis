@@ -20,25 +20,7 @@ EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=128
 '''
 
 # Import our utilities module
-sys.path.append('../')
-from utilities import cnn_utils, transform_utils
 
-EPOCH_COUNT = 15
-BATCH_SIZE = 16
-CHANNELS = 3
-img_size = 128
-
-
-# Root directory for dataset
-root = '../../data/training_data'
-data_root = os.path.join(root, "segmentation/size_128")
-
-SAVE_ROOT = root 
-
-# Check whether GPU is enabled
-torch.cuda.is_available()
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-print(device)
 
 class segNet(nn.Module):
 
@@ -321,48 +303,70 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
 
     return model, best_model_wts, epoch_loss_dict 
 
-# Define trasnforms
-common_transforms = [transform_utils.RandomHorizontalFlip(0.5), 
-                     transform_utils.RandomVerticalFlip(0.5)]
-#img_transforms = [transforms.ColorJitter()]
+if __name__=="__main__":
+    
+    sys.path.append('../')
+    from utilities import cnn_utils, transform_utils
 
-# Define network
-net = segNet(img_size)
-
-# Define dataloaders
-train_root = os.path.join(data_root, "train")
-val_root = os.path.join(data_root, "val")
-
-train_dset = SegmentationDataset(train_root, list_common_trans=common_transforms,
-                                 list_img_trans=None)
-val_dset = SegmentationDataset(val_root)
-
-train_dset_loader = utils.data.DataLoader(train_dset, batch_size=BATCH_SIZE, shuffle=True)
-val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
-
-dset_loader_dict = {'train':train_dset_loader, 'val':val_dset_loader}
-
-criterion_loss = nn.BCELoss()
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-net = net.to(device)
-optimizer = optim.Adam(net.parameters())
-
-# for i, (x,y) in enumerate(dset_loader_dict['train']):
-#     print("{} / {}".format(i, len(dset_loader_dict['train'])))
+    EPOCH_COUNT = 15
+    BATCH_SIZE = 16
+    CHANNELS = 3
+    img_size = 128
 
 
-trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
+    # Root directory for dataset
+    root = '../../data/training_data'
+    data_root = os.path.join(root, "segmentation/size_128")
 
-cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
+    SAVE_ROOT = root 
+
+    # Check whether GPU is enabled
+    torch.cuda.is_available()
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    print(device)
+
+    # Define trasnforms
+    common_transforms = [transform_utils.RandomHorizontalFlip(0.5), 
+                         transform_utils.RandomVerticalFlip(0.5)]
+    #img_transforms = [transforms.ColorJitter()]
+
+    # Define network
+    net = segNet(img_size)
+
+    # Define dataloaders
+    train_root = os.path.join(data_root, "train")
+    val_root = os.path.join(data_root, "val")
+
+    train_dset = SegmentationDataset(train_root, list_common_trans=common_transforms,
+                                     list_img_trans=None)
+    val_dset = SegmentationDataset(val_root)
+
+    train_dset_loader = utils.data.DataLoader(train_dset, batch_size=BATCH_SIZE, shuffle=True)
+    val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
+
+    dset_loader_dict = {'train':train_dset_loader, 'val':val_dset_loader}
+
+    criterion_loss = nn.BCELoss()
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    net = net.to(device)
+    optimizer = optim.Adam(net.parameters())
+
+    # for i, (x,y) in enumerate(dset_loader_dict['train']):
+    #     print("{} / {}".format(i, len(dset_loader_dict['train'])))
 
 
-# Save out
+    trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
 
-# f = 'seg_model.pt'
-# training_f = 'seg_training_hist.json'
+    cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
 
-# torch.save(best_wts, os.path.join(root, f))
-# with open(os.path.join(root,training_f), 'w') as fp:
-#     json.dump(epoch_loss_dict, fp)
+
+    # Save out
+
+    # f = 'seg_model.pt'
+    # training_f = 'seg_training_hist.json'
+
+    # torch.save(best_wts, os.path.join(root, f))
+    # with open(os.path.join(root,training_f), 'w') as fp:
+    #     json.dump(epoch_loss_dict, fp)
 
