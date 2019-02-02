@@ -26,7 +26,7 @@ EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=128
 
 import small_seg_model as model_def
 
-EPOCH_COUNT = 1
+EPOCH_COUNT = 15
 BATCH_SIZE = 16
 CHANNELS = 3
 img_size = 128
