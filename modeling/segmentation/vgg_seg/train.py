@@ -26,7 +26,7 @@ EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=128
 
 import vgg_seg as model_def
 
-EPOCH_COUNT = 15
+EPOCH_COUNT = 1
 BATCH_SIZE = 16
 CHANNELS = 3
 img_size = 128
@@ -150,33 +150,29 @@ common_transforms = [transform_utils.RandomHorizontalFlip(0.5),
 
 # Define network
 net = model_def.segNetVGG(img_size)
-
-mean_pre = (net.conv1a.weight.data.mean(), net.conv2a.weight.data.mean(),  net.conv3a.weight.data.mean())
 vgg = models.vgg16(pretrained=True)
-
 net.initialize_weights(vgg)
-mean_post = (net.conv1a.weight.data.mean(), net.conv2a.weight.data.mean(),  net.conv3a.weight.data.mean())
 
 # # Define dataloaders
-# train_root = os.path.join(data_root, "train")
-# val_root = os.path.join(data_root, "val")
+train_root = os.path.join(data_root, "train")
+val_root = os.path.join(data_root, "val")
 
-# train_dset = model_def.SegmentationDataset(train_root, list_common_trans=common_transforms,
-#                                  list_img_trans=None)
-# val_dset = model_def.SegmentationDataset(val_root)
+train_dset = model_def.SegmentationDataset(train_root, list_common_trans=common_transforms,
+                                 list_img_trans=None)
+val_dset = model_def.SegmentationDataset(val_root)
 
-# train_dset_loader = utils.data.DataLoader(train_dset, batch_size=BATCH_SIZE, shuffle=True)
-# val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
+train_dset_loader = utils.data.DataLoader(train_dset, batch_size=BATCH_SIZE, shuffle=True)
+val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
 
-# dset_loader_dict = {'train':train_dset_loader, 'val':val_dset_loader}
+dset_loader_dict = {'train':train_dset_loader, 'val':val_dset_loader}
 
-# criterion_loss = nn.BCELoss()
+criterion_loss = nn.BCELoss()
 
-# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-# net = net.to(device)
-# optimizer = optim.Adam(net.parameters())
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+net = net.to(device)
+optimizer = optim.Adam(net.parameters())
 
 
-# trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
+trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
 
-# cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
+cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
