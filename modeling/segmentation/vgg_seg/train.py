@@ -18,13 +18,13 @@ sys.path.append('../../')
 from utilities import cnn_utils, transform_utils, test_eval
 
 
-MODEL_NAME = "seg_small"
-MODEL_DETAILS = '''Try a smaller model based on the structure of the base_classification
-model. End-to-end without feature passes. Contains random hor/vert flips for data augmentation
+MODEL_NAME = "seg_vgg"
+MODEL_DETAILS = '''Segmentation model using weights from VGG. Contains random hor/vert flips 
+for data augmentation and add some additional color shifts.
 EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=128
 '''
 
-import small_seg_model as model_def
+import vgg_seg as model_def
 
 EPOCH_COUNT = 15
 BATCH_SIZE = 16
@@ -45,7 +45,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
 
-def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer, verbose=False):
+def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer, verbose=False, detailed_time=False):
     print("Starting training loop...\n")
     print("Model's device = {}".format(model.my_device))
 
@@ -74,7 +74,14 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
             total_obs = 0
 
             # For each mini-batch in the dataloader
+            total_data_fetch = 0
+            total_pass = 0
+            b_data_fetch = time.time()
             for i, data in enumerate(dataloader_dict[phase]):
+
+                if detailed_time: 
+                    total_data_fetch += (time.time() - b_data_fetch)
+                    b_pass = time.time()
 
                 images, target = data
                 target = torch.tensor(target, dtype=torch.float32, device=device)
@@ -91,18 +98,11 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
 
                 #preds = torch.round(output)
                 
-                #print("avg output={}".format(output.sum()/output.shape[0]))
-
                 # Calculate loss
                 error = criterion(output, target)
-                # correct = preds==target
-                # incorrect = preds!=target
-                # correct_count = torch.sum(correct)
 
                 # Make detailed output if verbose
                 verbose_str = ""
-                if verbose:
-                    pass 
 
                 # Training steps
                 if phase == 'train':
@@ -110,13 +110,16 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
                     error.backward()
                     # Take optimizer step
                     optimizer.step()
+                if detailed_time: 
+                    total_pass += (time.time() - b_pass)
 
                 # The error is divided by the batch size, so reverse this
                 running_loss += error.item() * batch_size
                 #running_corrects += correct_count 
 
-                #print('%s - [%d/%d][%d/%d]\tError: %.4f\t' % 
-                #    (phase, epoch, num_epochs, i, len(dataloader_dict[phase]), error.item()))
+                if detailed_time: 
+                    b_data_fetch = time.time()
+
             epoch_loss = running_loss / total_obs
             epoch_acc = 0.5
             #epoch_acc = (running_corrects.double() / total_obs).item()
@@ -130,6 +133,9 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
             epoch_loss_dict[phase]['acc'].append(epoch_acc)
             epoch_loss_dict[phase]['loss'].append(epoch_loss)
             epoch_loss_dict[phase]['time'].append(t)
+            if detailed_time:
+                epoch_loss_dict[phase]['backward_pass_time'].append(total_pass)
+                epoch_loss_dict[phase]['data_fetch_time'].append(total_data_fetch)
 
             print("PHASE={} EPOCH={} TIME={} LOSS={} ACC={}".format(phase, 
                 epoch, t, epoch_loss, epoch_acc))
@@ -143,28 +149,34 @@ common_transforms = [transform_utils.RandomHorizontalFlip(0.5),
 #img_transforms = [transforms.ColorJitter()]
 
 # Define network
-net = model_def.SmallSegNet(input_channels, img_size)
+net = model_def.segNetVGG(img_size)
 
-# Define dataloaders
-train_root = os.path.join(data_root, "train")
-val_root = os.path.join(data_root, "val")
+mean_pre = (net.conv1a.weight.data.mean(), net.conv2a.weight.data.mean(),  net.conv3a.weight.data.mean())
+vgg = models.vgg16(pretrained=True)
 
-train_dset = model_def.SegmentationDataset(train_root, list_common_trans=common_transforms,
-                                 list_img_trans=None)
-val_dset = model_def.SegmentationDataset(val_root)
+net.initialize_weights(vgg)
+mean_post = (net.conv1a.weight.data.mean(), net.conv2a.weight.data.mean(),  net.conv3a.weight.data.mean())
 
-train_dset_loader = utils.data.DataLoader(train_dset, batch_size=BATCH_SIZE, shuffle=True)
-val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
+# # Define dataloaders
+# train_root = os.path.join(data_root, "train")
+# val_root = os.path.join(data_root, "val")
 
-dset_loader_dict = {'train':train_dset_loader, 'val':val_dset_loader}
+# train_dset = model_def.SegmentationDataset(train_root, list_common_trans=common_transforms,
+#                                  list_img_trans=None)
+# val_dset = model_def.SegmentationDataset(val_root)
 
-criterion_loss = nn.BCELoss()
+# train_dset_loader = utils.data.DataLoader(train_dset, batch_size=BATCH_SIZE, shuffle=True)
+# val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-net = net.to(device)
-optimizer = optim.Adam(net.parameters())
+# dset_loader_dict = {'train':train_dset_loader, 'val':val_dset_loader}
+
+# criterion_loss = nn.BCELoss()
+
+# device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+# net = net.to(device)
+# optimizer = optim.Adam(net.parameters())
 
 
-trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
+# trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
 
-cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
+# cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
