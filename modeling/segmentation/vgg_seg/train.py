@@ -149,8 +149,10 @@ common_transforms = [transform_utils.RandomHorizontalFlip(0.5),
 #img_transforms = [transforms.ColorJitter()]
 
 # Define network
+model_zoo = "../../../model_zoo"
 net = model_def.segNetVGG(img_size)
-vgg = models.vgg16(pretrained=True)
+vgg = models.vgg16(pretrained=False)
+vgg.load_state_dict(torch.load(os.path.join(model_zoo, "vgg16.pt")), map_location='gpu')
 net.initialize_weights(vgg)
 
 # # Define dataloaders
