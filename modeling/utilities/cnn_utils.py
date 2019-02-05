@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 import json 
 import datetime 
 
+from functools import reduce 
+
 def save_model(model, model_name, state_dict, training_hist, model_details, root_path):
 
     # Store everything in folder of the model name
@@ -44,6 +46,17 @@ def save_model(model, model_name, state_dict, training_hist, model_details, root
         fp.write("\n")
         fp.write("MODEL STRUCTURE:")
         fp.write(model.__str__())
+        fp.write("\n\n")
+        fp.write("PARAMETER COUNT BY LAYER:\n")
+        # print Parameter counts
+        total_params = 0
+        for name, layer in model.named_children():
+            layer_total = 0
+            for param in layer.parameters():
+                layer_total += reduce(lambda x,y: x*y, param.shape)
+            fp.write("Layer {} has {} parameters\n".format(name, layer_total)) 
+            total_params += layer_total
+        fp.write("\nModel has {} total parameters".format(total_params))
 
 class ConvPass(nn.Module):
 
