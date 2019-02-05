@@ -18,7 +18,7 @@ sys.path.append('../../')
 from utilities import cnn_utils, transform_utils, test_eval
 
 
-MODEL_NAME = "seg_small"
+MODEL_NAME = "seg_des_rgb"
 MODEL_DETAILS = '''USES DESCARTES RGB data!!!
 Try a smaller model based on the structure of the base_classification
 model. End-to-end without feature passes. Contains random hor/vert flips for data augmentation
