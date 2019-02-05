@@ -149,10 +149,12 @@ common_transforms = [transform_utils.RandomHorizontalFlip(0.5),
 #img_transforms = [transforms.ColorJitter()]
 
 # Define network
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 model_zoo = "../../../model_zoo"
 net = model_def.segNetVGG(img_size)
 vgg = models.vgg16(pretrained=False)
-vgg.load_state_dict(torch.load(os.path.join(model_zoo, "vgg16.pt"), map_location='gpu'))
+vgg.load_state_dict(torch.load(os.path.join(model_zoo, "vgg16.pt"), map_location=device))
 net.initialize_weights(vgg)
 
 # # Define dataloaders
@@ -170,7 +172,6 @@ dset_loader_dict = {'train':train_dset_loader, 'val':val_dset_loader}
 
 criterion_loss = nn.BCELoss()
 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 net = net.to(device)
 optimizer = optim.Adam(net.parameters())
 
