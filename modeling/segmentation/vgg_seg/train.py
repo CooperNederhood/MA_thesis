@@ -59,8 +59,10 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
     epoch_loss_dict = {'train': {'acc': [], 'loss':[], 'time':[]}, 
                          'val': {'acc': [], 'loss':[], 'time':[]}}
     if detailed_time:
-        epoch_loss_dict[phase]['backward_pass_time'] = []
-        epoch_loss_dict[phase]['data_fetch_time'] = []
+        epoch_loss_dict['train']['backward_pass_time'] = []
+        epoch_loss_dict['train']['data_fetch_time'] = []
+        epoch_loss_dict['val']['backward_pass_time'] = []
+        epoch_loss_dict['val']['data_fetch_time'] = []
 
     # For each epoch
     for epoch in range(num_epochs):
