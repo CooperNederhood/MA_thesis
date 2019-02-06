@@ -1,6 +1,7 @@
 import pandas as pd 
 import numpy as np 
 import get_google_earth 
+import api_keys 
 
 file = "sdi_boundaries_2019_01_08_14_21_48_287773.csv"
 CITY = 'section_B/B5_City'
@@ -11,8 +12,6 @@ MUNI = 'section_B/B7_Settlement_Name_Community'
 POINT = 'section_C/C1_GPS'
 
 columns = [CITY, AREA, COMM, MUNI, POINT, BOUNDS]
-
-GOOGLE_MAPS_API_KEY = 'AIzaSyDnpPsSCMi3F8Y2xXHk8P3USo45V2Wc99I'\
 
 # circumference/radius
 tau = 6.283185307179586
@@ -58,5 +57,6 @@ if __name__ == "__main__":
 
     # # Now loop down the Oan ID's, clean, and get Google Earth image
     f = []
-    for non_slum_id in range(6, df.shape[0]+1):
+    # We are just looping over 11-26, which are the round 2 images
+    for non_slum_id in range(18, 26):
         get_non_slum_image(non_slum_id, df, f)

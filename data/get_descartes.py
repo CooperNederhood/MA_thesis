@@ -258,10 +258,9 @@ if __name__ == "__main__":
     d = {}
     f = []
     metadata_dict = {'ID':[], 'Sat_type':[], 'Pic_count':[], 'Date_min':[], 'Date_max':[], 'Avg_cloud_pct':[]}
-    for cur_ona_id in range(33, df_lagos.shape[0]):
+    for cur_ona_id in range(df_lagos.shape[0]):
         get_image_for_ona(sat_type, cur_ona_id, df_lagos, d, f, metadata_dict)
-        
-        break 
+         
         # try:
         #     process_ona.process_coords(cur_ona_id, df_lagos, d)
         # except:

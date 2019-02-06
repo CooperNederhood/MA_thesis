@@ -5,6 +5,7 @@ Just a simple script to pull the ENTIRE AOI for Lagos
 import pandas as pd 
 import numpy as np 
 import get_google_earth 
+import api_keys 
 
 file = "sdi_boundaries_2019_01_08_14_21_48_287773.csv"
 CITY = 'section_B/B5_City'
@@ -15,8 +16,6 @@ MUNI = 'section_B/B7_Settlement_Name_Community'
 POINT = 'section_C/C1_GPS'
 
 columns = [CITY, AREA, COMM, MUNI, POINT, BOUNDS]
-
-GOOGLE_MAPS_API_KEY = 'AIzaSyDnpPsSCMi3F8Y2xXHk8P3USo45V2Wc99I'
 
 # circumference/radius
 tau = 6.283185307179586

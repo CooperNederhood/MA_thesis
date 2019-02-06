@@ -105,7 +105,7 @@ def build_training_data(pic_size, step_size, class_threshold,
         # Open the slum image and the associated mask, and resize the mask
         ona_img = Image.open(os.path.join(slum_image_path, img_id))
         ona_mask = Image.open(os.path.join(mask_path, img_id))
-        ona_mask = ona_mask.resize(ona_img.size, resample=Image.BILINEAR)
+        ona_mask = ona_mask.resize(ona_img.size)
 
         # Save the scaled masks out for inspection
         ona_mask.save(os.path.join("labelbox/descartes_masks", img_id))
@@ -113,6 +113,9 @@ def build_training_data(pic_size, step_size, class_threshold,
         # Change to numpy arrays
         ona_img = np.array(ona_img)
         ona_mask = np.array(ona_mask)
+
+        # Check each mask is still just 0,1
+        assert np.median(ona_mask) in {0, 1}
 
 
         # NOTE: images will NOT be the same size so we have scaled the Ona masks

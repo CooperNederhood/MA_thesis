@@ -21,8 +21,6 @@ from math import log, exp, tan, atan, ceil
 from PIL import Image
 import sys
 
-GOOGLE_MAPS_API_KEY = 'AIzaSyDnpPsSCMi3F8Y2xXHk8P3USo45V2Wc99I'
-
 # circumference/radius
 tau = 6.283185307179586
 # One degree in radians, i.e. in the units the machine uses to store angle,
