@@ -46,7 +46,7 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 print(device)
 
 
-def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer, verbose=False):
+def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer, verbose=False, detailed_time=False):
     print("Starting training loop...\n")
     print("Model's device = {}".format(model.my_device))
 
@@ -57,8 +57,13 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
     current_best_loss = 1000
 
     # Initialize loss dict to record training, figures are per epoch
-    epoch_loss_dict = {'train': {'acc': [], 'loss':[], 'time':[]}, 
-                         'val': {'acc': [], 'loss':[], 'time':[]}}
+    epoch_loss_dict = {'train': {'acc': [], 'loss':[], 'IoU':[], 'time':[]}, 
+                         'val': {'acc': [], 'loss':[], 'IoU':[], 'time':[]}}
+    if detailed_time:
+        epoch_loss_dict['train']['backward_pass_time'] = []
+        epoch_loss_dict['train']['data_fetch_time'] = []
+        epoch_loss_dict['val']['backward_pass_time'] = []
+        epoch_loss_dict['val']['data_fetch_time'] = []
 
     # For each epoch
     for epoch in range(num_epochs):
@@ -71,13 +76,23 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
                 model.eval()
 
             running_loss = 0.0
-            #running_corrects = 0
+            running_corrects = 0
             total_obs = 0
 
             # For each mini-batch in the dataloader
+            total_data_fetch = 0
+            total_pass = 0
+            b_data_fetch = time.time()
             for i, data in enumerate(dataloader_dict[phase]):
 
+                if detailed_time: 
+                    total_data_fetch += (time.time() - b_data_fetch)
+                    b_pass = time.time()
+
                 images, target = data
+                img_size = target[-1]
+                assert img_size == 128
+
                 target = torch.tensor(target, dtype=torch.float32, device=device)
                 images = images.to(device)
 
@@ -90,20 +105,15 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
                 output = model(images)
                 output = output.view(target.shape)
 
-                #preds = torch.round(output)
+                # Just round since we have binary classification
+                preds = torch.round(output)
+                correct_count = (preds == output).sum()
                 
-                #print("avg output={}".format(output.sum()/output.shape[0]))
-
                 # Calculate loss
-                error = criterion(output, target)
-                # correct = preds==target
-                # incorrect = preds!=target
-                # correct_count = torch.sum(correct)
+                error = criterion(output, target)                
 
                 # Make detailed output if verbose
                 verbose_str = ""
-                if verbose:
-                    pass 
 
                 # Training steps
                 if phase == 'train':
@@ -111,16 +121,20 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
                     error.backward()
                     # Take optimizer step
                     optimizer.step()
+                if detailed_time: 
+                    total_pass += (time.time() - b_pass)
 
                 # The error is divided by the batch size, so reverse this
                 running_loss += error.item() * batch_size
-                #running_corrects += correct_count 
+                running_corrects += correct_count.item()
+                running_IoU += test_eval.inter_over_union(preds, target)
 
-                #print('%s - [%d/%d][%d/%d]\tError: %.4f\t' % 
-                #    (phase, epoch, num_epochs, i, len(dataloader_dict[phase]), error.item()))
+                if detailed_time: 
+                    b_data_fetch = time.time()
+
             epoch_loss = running_loss / total_obs
-            epoch_acc = 0.5
-            #epoch_acc = (running_corrects.double() / total_obs).item()
+            epoch_acc = running_corrects / (total_obs*img_size*img_size) 
+            epoch_IoU = running_IoU / total_obs 
 
             if epoch_loss < current_best_loss:
                 current_best_loss = epoch_loss
@@ -130,7 +144,11 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
             # Add to our epoch_loss_dict
             epoch_loss_dict[phase]['acc'].append(epoch_acc)
             epoch_loss_dict[phase]['loss'].append(epoch_loss)
+            epoch_loss_dict[phase]['IoU'].append(epoch_IoU)
             epoch_loss_dict[phase]['time'].append(t)
+            if detailed_time:
+                epoch_loss_dict[phase]['backward_pass_time'].append(total_pass)
+                epoch_loss_dict[phase]['data_fetch_time'].append(total_data_fetch)
 
             print("PHASE={} EPOCH={} TIME={} LOSS={} ACC={}".format(phase, 
                 epoch, t, epoch_loss, epoch_acc))

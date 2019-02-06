@@ -21,6 +21,15 @@ import sys
 sys.path.append('../')
 #from utilities import cnn_utils, transform_utils
 
+def inter_over_union(pred, target):
+
+    log_or = torch.max(pred, target)
+    log_and = pred*target 
+
+    rv = log_and.sum() / log_or.sum()
+
+    return rv.item()
+
 def load_weights(raw_net, model_name, is_gpu):
     '''
     The raw_net is a type of deep neural net and 

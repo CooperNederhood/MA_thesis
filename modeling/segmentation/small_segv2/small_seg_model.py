@@ -14,7 +14,7 @@ from PIL import Image
 import sys
 import json 
 
-MODEL_NAME = "seg_small"
+MODEL_NAME = "seg_smallv2"
 
 class SmallSegNet(nn.Module):
 
