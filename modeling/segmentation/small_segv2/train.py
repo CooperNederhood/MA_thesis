@@ -27,7 +27,7 @@ EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=128
 
 import small_seg_model as model_def
 
-EPOCH_COUNT = 15
+EPOCH_COUNT = 1
 BATCH_SIZE = 16
 CHANNELS = 3
 img_size = 128
@@ -90,7 +90,7 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
                     b_pass = time.time()
 
                 images, target = data
-                img_size = target[-1]
+                img_size = target.shape[-1]
                 assert img_size == 128
 
                 target = torch.tensor(target, dtype=torch.float32, device=device)
