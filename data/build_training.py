@@ -46,16 +46,6 @@ def split_image(image, image_id, zoom, output_size, step_size, class_type):
         j = output_size
         i += step_size
 
-# zoom = 18
-# class_type = "slums"
-# source_path = "google_earth/zoom_{}/{}/".format(zoom, class_type)
-# file = "ona_id47_image.png"
-
-# im = Image.open(source_path+file)
-# im_array = np.array(im)
-
-# split_image(im_array, "47", "18", 256, 256, class_type)
-# split_image(im_array, "47", "18", 128, 128, class_type)
 
 def determine_image_class(mask, threshold):
     '''
@@ -76,7 +66,7 @@ def determine_image_class(mask, threshold):
 
 
 def build_training_data(zoom_level, pic_size, step_size, class_threshold, 
-    mask_path, slum_image_path, nonslum_image_path):
+    mask_path, slum_image_path, nonslum_image_path, output_path, img_type="PIL"):
     '''
     Given a desired picture output size, a threshold to determine what % of pixels
     need to be a slum for the image to be classified a slum, and paths to the raw images
@@ -91,18 +81,49 @@ def build_training_data(zoom_level, pic_size, step_size, class_threshold,
         nonslum_image_path: (str) path to additional non-slum images we need
     '''
 
-    output_path = "training_data"
-    segmentation_output = os.path.join(os.path.join(output_path, "segmentation"), "size_{}".format(pic_size))
-    classification_output = os.path.join(os.path.join(output_path, "classification"), "size_{}".format(pic_size))
+    # Make folders, if needed
+    if not os.path.isdir(os.path.join(output_path, "segmentation")):
+        os.mkdir(os.path.join(output_path, "segmentation"))
+    if not os.path.isdir(os.path.join(output_path, "classification")):
+        os.mkdir(os.path.join(output_path, "classification"))
+
+    if not os.path.isdir(os.path.join(output_path, "segmentation", "size_{}".format(pic_size))):
+        os.mkdir(os.path.join(output_path, "segmentation", "size_{}".format(pic_size)))
+    if not os.path.isdir(os.path.join(output_path, "classification", "size_{}".format(pic_size))):
+        os.mkdir(os.path.join(output_path, "classification", "size_{}".format(pic_size)))
+
+    segmentation_output = os.path.join(output_path, "segmentation", "size_{}".format(pic_size))
+    classification_output = os.path.join(output_path, "classification", "size_{}".format(pic_size))
+
+    # Make final sub-folders, if needed
+    if not os.path.isdir(os.path.join(segmentation_output, "image")):
+        os.mkdir(os.path.join(segmentation_output, "image"))
+        os.mkdir(os.path.join(segmentation_output, "mask"))
+    if not os.path.isdir(os.path.join(classification_output, "slum")):
+        os.mkdir(os.path.join(classification_output, "slum"))
+        os.mkdir(os.path.join(classification_output, "nonslum"))
 
     # First, process all the Ona slum images and their corresponding masks
     ona_images = os.listdir(mask_path)
 
     for img_id in ona_images:
-        ona_img = np.array(Image.open(os.path.join(slum_image_path, img_id)))
+
+        # For RGB images, the file is a PIL image
+        if img_type == "PIL":
+            ona_img = np.array(Image.open(os.path.join(slum_image_path, img_id)))
+           
+        # But for multiband images, the file is a numpy array 
+        else:
+            assert img_type == "Numpy_array"
+            ona_img = np.load(os.path.join(slum_image_path, img_id))
+
         ona_mask = np.array(Image.open(os.path.join(mask_path, img_id)))
 
-        assert ona_img.shape == ona_mask.shape
+        if img_type == "PIL":
+            assert ona_img.shape == ona_mask.shape
+        else:
+            assert ona_img.shape[1:] == ona_mask.shape[1:]
+            assert ona_img.shape[0] > 3
 
         i = pic_size
         j = pic_size
@@ -185,6 +206,21 @@ def train_val_split_segmentation(train_pct):
     to the data you want to split and it will put it into train/val folders
     '''
 
+    if not os.path.isdir("train"):
+        os.mkdir("train")
+    if not os.path.isdir("val"):
+        os.mkdir("val")
+
+    if not os.path.isdir(os.path.join("train", "image")):
+        os.mkdir(os.path.join("train", "image"))
+    if not os.path.isdir(os.path.join("val", "image")):
+        os.mkdir(os.path.join("val", "image"))
+
+    if not os.path.isdir(os.path.join("train", "mask")):
+        os.mkdir(os.path.join("train", "mask"))
+    if not os.path.isdir(os.path.join("val", "mask")):
+        os.mkdir(os.path.join("val", "mask"))
+
 
     all_files = np.array(os.listdir("mask"))
     is_train = np.random.binomial(1, train_pct, size=len(all_files))
@@ -245,16 +281,29 @@ def train_val_split_classification(target_folder, train_pct):
 
 
 if __name__ == "__main__":
-    pic_size = 128
+    #pic_size = 128
+    pic_size = 256
     step_size = 128 
     zoom_level = 18
-    class_threshold = .1
-    mask_path = "labelbox/masks"
-    slum_image_path = "google_earth/zoom_18/slums"
-    nonslum_image_path = "google_earth/zoom_18/not_slums"
+    class_threshold = .5
+
+    # The below 4 paths need to be set depending on the dataset being analyzed
+ 
+    # # USED FOR GOOGLE EARTH IMAGES:   
+    # mask_path = "labelbox/google_earth_masks"
+    # slum_image_path = "google_earth/zoom_18/slums"
+    # nonslum_image_path = "google_earth/zoom_18/not_slums"
+    # output_path = "training_data/google_earth"
+
+
+    # USED FOR PLEIADES IMAGES
+    mask_path = "labelbox/pleiades"
+    slum_image_path = "descartes/RGB/min_cloud/slums"
+    nonslum_image_path = "descartes/RGB/min_cloud/not_slums"
+    output_path = "training_data/descartes/RGB"
 
     build_training_data(zoom_level, pic_size, step_size, class_threshold, 
-        mask_path, slum_image_path, nonslum_image_path)
+        mask_path, slum_image_path, nonslum_image_path, output_path)
 
 
 

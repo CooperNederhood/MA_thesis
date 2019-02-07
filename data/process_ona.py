@@ -12,8 +12,6 @@ POINT = 'section_C/C1_GPS'
 
 columns = [CITY, AREA, COMM, MUNI, POINT, BOUNDS]
 
-GOOGLE_MAPS_API_KEY = 'AIzaSyDnpPsSCMi3F8Y2xXHk8P3USo45V2Wc99I'\
-
 # circumference/radius
 tau = 6.283185307179586
 # One degree in radians, i.e. in the units the machine uses to store angle,
@@ -22,7 +20,6 @@ tau = 6.283185307179586
 DEGREE = tau/360
 
 ZOOM_OFFSET = 8
-#GOOGLE_MAPS_API_KEY = None  # set to 'your_API_key'
 
 # Max width or height of a single image grabbed from Google.
 MAXSIZE = 640

@@ -4,6 +4,7 @@ import numpy as np
 from PIL import Image 
 import cv2 
 import matplotlib.pyplot as plt 
+import os 
 
 
 def load_labelbox_labels(labelbox_file):
@@ -13,7 +14,7 @@ def load_labelbox_labels(labelbox_file):
     '''
 
     path = "labelbox/"
-    df = pd.read_csv(path+labelbox_file)
+    df = pd.read_csv(os.path.join(path, labelbox_file))
 
     rv_d = {}
     orig_pic_ids = df['External ID'].values
@@ -57,7 +58,7 @@ def load_labelbox_labels(labelbox_file):
 
     return rv_d 
 
-def make_mask(pic_id, truth_mask_dict):
+def make_mask(pic_id, truth_mask_dict, x_scale=1, y_scale=1):
     '''
     If you specify a target ID and a truth_mask_dict contianing
     the coords, loads the original iamge and builds the corresponding
@@ -71,7 +72,7 @@ def make_mask(pic_id, truth_mask_dict):
     '''
 
     # Load the Ona Image
-    orig_img = Image.open(ONA_IMAGE_PATH+pic_id)
+    orig_img = Image.open(os.path.join(ONA_IMAGE_PATH, pic_id))
     im_array = np.array(orig_img)
 
     # BUild the coords list for the slum coords
@@ -84,8 +85,8 @@ def make_mask(pic_id, truth_mask_dict):
         for slum_xy in slum_xy_list:
             slum_coords = np.empty((1,len(slum_xy),2), dtype=np.int32)
             for i, xy_pair in enumerate(slum_xy):
-                x = xy_pair['x']
-                y = xy_pair['y']
+                x = xy_pair['x']*x_scale
+                y = xy_pair['y']*y_scale
 
                 slum_coords[0,i,0] = x
                 slum_coords[0,i,1] = y
@@ -100,8 +101,8 @@ def make_mask(pic_id, truth_mask_dict):
         for nonslum_xy in nonslum_xy_list:
             nonslum_coords = np.empty((1,len(nonslum_xy),2), dtype=np.int32)
             for i, xy_pair in enumerate(nonslum_xy):
-                x = xy_pair['x']
-                y = xy_pair['y']
+                x = xy_pair['x']*x_scale
+                y = xy_pair['y']*y_scale
 
                 nonslum_coords[0,i,0] = x
                 nonslum_coords[0,i,1] = y
@@ -120,26 +121,46 @@ def make_mask(pic_id, truth_mask_dict):
 
     #return im_array, is_slum_mask, not_slum_mask, final_mask
     return final_mask
-
+# xjwa577N5zq:tc
 
 if __name__ == "__main__":
 
     f = "download_1_13_2019.csv"
+
+    scale_df = pd.read_csv("Pleiades_scaling.csv", index_col="ID")
     labels = load_labelbox_labels(f)
 
-    ONA_IMAGE_PATH = "google_earth/zoom_18/slums/"
-    ona_id = 'ona_id74_image.png'
+    # Just adjust the ONA_IMAGE_PATH to wherever the images are located, 
+    #       be they in google_earth, descartes, or elsewhere
+    mask_type = "pleiades"
+    ONA_IMAGE_PATH = "descartes/RGB/min_cloud/slums"
 
     # Loop over all ID's in the ground-truth thus far
     for ona_id in labels.keys():
         if labels[ona_id] != 'Skip':
-            mask = make_mask(ona_id, labels)
+
+            if scale_df is not None:
+                if ona_id in scale_df.index:
+                    x_scale = scale_df.loc[ona_id]['x_scale']
+                    y_scale = scale_df.loc[ona_id]['y_scale']
+
+                    if pd.isna(x_scale):
+                        print("Ona ID ", ona_id, " is NA in the scale dataframe")
+                        continue
+                    else:
+                        mask = make_mask(ona_id, labels, x_scale, y_scale)
+                else:
+                    print("Ona ID ", ona_id, "is not in scale dataframe")
+                    continue 
+
+            else:    
+                mask = make_mask(ona_id, labels)
 
             mask_img = Image.fromarray(mask*255)
             mask_img = mask_img.convert('RGB')
-            p = "labelbox/masks/"+ona_id
+            p = os.path.join("labelbox", mask_type, ona_id)
             print("Saving image mask for: ", ona_id)
-            mask_img.save("labelbox/masks/"+ona_id)
+            mask_img.save(p)
             
 
 

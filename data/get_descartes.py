@@ -89,13 +89,13 @@ def get_descartes_images(sat_type, NW_lat_long, SE_lat_long,
 
     return scenes, geoctx 
 
-def get_non_slums(sat_type, method="Median"):
+def get_non_slums(sat_type, method="median"):
 
     path = "./google_earth/non_slum.csv"
     df = pd.read_csv(path)
 
     nonslum_metadata = {'ID':[], 'Sat_type':[], 'Pic_count':[], 'Date_min':[], 'Date_max':[], 'Avg_cloud_pct':[]}
-    for i in range(1, df.shape[0]+1):
+    for i in range(1, 10+1):
         cur_id = "nonslum_id{}_image".format(i)
         cur_obs = df[df.ID==i]
 
@@ -106,53 +106,50 @@ def get_non_slums(sat_type, method="Median"):
         clean_metadata(cur_id, sat_type, scenes, nonslum_metadata)
 
         if len(scenes) > 0:
-
-            if method == "Median":
+            if method == "median":
                 array_stack_RGB = scenes.stack("red green blue", geoctx)
                 array_stack_FULL = scenes.stack("red green blue nir", geoctx)
 
                 # Take medians for now, and save out
-                array_med_RGB = np.array(np.ma.median(array_stack_RGB, axis=0)).astype('uint8')
-                array_med_FULL = np.array(np.ma.median(array_stack_FULL, axis=0))
-
-                rgb_img = transforms.ToPILImage()(torch.from_numpy(array_med_RGB))
-                rgb_file = "{}.png".format(cur_id)
-                full_file = "{}.npy".format(cur_id)
-
-                # Save RGB and save Full 4-band as numpy array
-                rgb_img.save(os.path.join(DESCARTES_PATH, "RGB", "not_slums", rgb_file))
-                np.save(os.path.join(DESCARTES_PATH, "Four_band", "not_slums", full_file), array_med_FULL)
+                array_RGB = np.array(np.ma.median(array_stack_RGB, axis=0)).astype('uint8')
+                array_FULL = np.array(np.ma.median(array_stack_FULL, axis=0))
 
             else:
-                ### THIS IS NOT OPERABLE CURRENTLY. NEEDS TO BE REWORKED
-                # Method == "Cloud_rank"
-                scenes = scenes.sorted("properties.cloud_fraction")
+                assert method == "min_cloud"
+                # Sort default is for ascending but we want descending, as in 
+                # places of overlap mask uses the LAST value
+                scenes = scenes.sorted("properties.cloud_fraction", reverse=True)
 
-                # Check that the FIRST scene has the lowest cloud_fraction
+                # Check that the Last scene has the lowest cloud_fraction
                 if len(scenes) >= 2:
-                    assert scenes[0].properties.cloud_fraction <= scenes[-1].properties.cloud_fraction
+                    assert scenes[-1].properties.cloud_fraction <= scenes[0].properties.cloud_fraction
 
-                # Take the least cloudy in the set
-                array_stack_RGB = scenes[0].ndarray("red green blue", geoctx)
-                array_stack_FULL = scenes[0].ndarray("red green blue nir", geoctx)
+                # Mosaic the set into a single array
+                array_RGB = scenes.mosaic("red green blue", geoctx)
+                array_FULL = scenes.mosaic("red green blue nir", geoctx)
 
-                rgb_img = transforms.ToPILImage()(torch.from_numpy(array_stack_RGB))
-                rgb_file = "ona_id{}_image.png".format(cur_ona_id)
-                rgb_img.save(os.path.join(DESCARTES_PATH, "RGB", "not_slums", rgb_file))
+            # Convert the RGB array into Image
+            rgb_img = transforms.ToPILImage()(torch.from_numpy(array_RGB))
+            array_FULL = np.array(array_FULL)
+            rgb_file = "{}.png".format(cur_id)
+            full_file = "{}.npy".format(cur_id)
 
+            # Save RGB as image and save Full 4-band as numpy array
+            rgb_img.save(os.path.join(DESCARTES_PATH, "RGB", method, "not_slums", rgb_file))
+            np.save(os.path.join(DESCARTES_PATH, "Four_band", method, "not_slums", full_file), array_FULL)
          
     metadata_df = pd.DataFrame(nonslum_metadata)
-    metadata_df.to_csv("descartes/{}_data_review_nonslums.csv".format(sat_type))
+    metadata_df.to_csv("descartes/{}_data_review_nonslums_{}.csv".format(sat_type, method))
 
 
-def get_image_for_ona(sat_type, ona_id, dataframe, output_dict, fails, metadata_dict, method="Median"):
+def get_image_for_ona(sat_type, ona_id, dataframe, output_dict, fails, metadata_dict, method="median"):
     '''
     Given the Ona ID and the dataframe containing the boundaries, 
     grabs the corresponding Google Earth image for the bounding box
     and saves based on the Ona ID
     '''
 
-    assert method in {'Cloud_rank', 'Median'}
+    assert method in {'min_cloud', 'median'}
 
     # Process the Ona list of coords from within the DataFrame
     try:
@@ -173,37 +170,37 @@ def get_image_for_ona(sat_type, ona_id, dataframe, output_dict, fails, metadata_
 
     if len(scenes) > 0:
 
-        if method == "Median":
+        if method == "median":
             array_stack_RGB = scenes.stack("red green blue", geoctx)
             array_stack_FULL = scenes.stack("red green blue nir", geoctx)
 
             # Take medians for now, and save out
-            array_med_RGB = np.array(np.ma.median(array_stack_RGB, axis=0)).astype('uint8')
-            array_med_FULL = np.array(np.ma.median(array_stack_FULL, axis=0))
-
-            rgb_img = transforms.ToPILImage()(torch.from_numpy(array_med_RGB))
-            rgb_file = "ona_id{}_image.png".format(cur_ona_id)
-            full_file = "ona_id{}_image.npy".format(cur_ona_id)
-
-            # Save RGB and save Full 4-band as numpy array
-            rgb_img.save(os.path.join(DESCARTES_PATH, "RGB", "slums", rgb_file))
-            np.save(os.path.join(DESCARTES_PATH, "Four_band", "slums", full_file), array_med_FULL)
+            array_RGB = np.array(np.ma.median(array_stack_RGB, axis=0)).astype('uint8')
+            array_FULL = np.array(np.ma.median(array_stack_FULL, axis=0))
 
         else:
-            # Method == "Cloud_rank"
-            scenes = scenes.sorted("properties.cloud_fraction")
+            assert method == "min_cloud"
+            # Sort default is for ascending but we want descending, as in 
+            # places of overlap mask uses the LAST value
+            scenes = scenes.sorted("properties.cloud_fraction", reverse=True)
 
-            # Check that the FIRST scene has the lowest cloud_fraction
+            # Check that the Last scene has the lowest cloud_fraction
             if len(scenes) >= 2:
-                assert scenes[0].properties.cloud_fraction <= scenes[-1].properties.cloud_fraction
+                assert scenes[-1].properties.cloud_fraction <= scenes[0].properties.cloud_fraction
 
-            # Take the least cloudy in the set
-            array_stack_RGB = scenes[0].ndarray("red green blue", geoctx)
-            array_stack_FULL = scenes[0].ndarray("red green blue nir", geoctx)
+            # Mosaic the set into a single array
+            array_RGB = scenes.mosaic("red green blue", geoctx)
+            array_FULL = scenes.mosaic("red green blue nir", geoctx)
 
-            rgb_img = transforms.ToPILImage()(torch.from_numpy(array_stack_RGB))
-            rgb_file = "ona_id{}_image.png".format(cur_ona_id)
-            rgb_img.save(os.path.join(DESCARTES_PATH, "RGB", "slums", rgb_file))
+        # Convert the RGB array into Image
+        rgb_img = transforms.ToPILImage()(torch.from_numpy(array_RGB))
+        array_FULL = np.array(array_FULL)
+        rgb_file = "ona_id{}_image.png".format(cur_ona_id)
+        full_file = "ona_id{}_image.npy".format(cur_ona_id)
+
+        # Save RGB as image and save Full 4-band as numpy array
+        rgb_img.save(os.path.join(DESCARTES_PATH, "RGB", method, "slums", rgb_file))
+        np.save(os.path.join(DESCARTES_PATH, "Four_band", method, "slums", full_file), array_FULL)
 
 
 
@@ -249,7 +246,10 @@ if __name__ == "__main__":
     metadata_client = dl.Metadata()
     sat_type = "Pleiades"
 
-    #get_non_slums(sat_type)
+    #method = "min_cloud"
+    method = "median"
+
+    get_non_slums(sat_type, method)
 
     # Read in the Ona file of settlements
     df_lagos = pd.read_csv("ona/Lagos_settlements.csv")
@@ -259,21 +259,9 @@ if __name__ == "__main__":
     f = []
     metadata_dict = {'ID':[], 'Sat_type':[], 'Pic_count':[], 'Date_min':[], 'Date_max':[], 'Avg_cloud_pct':[]}
     for cur_ona_id in range(df_lagos.shape[0]):
-        get_image_for_ona(sat_type, cur_ona_id, df_lagos, d, f, metadata_dict)
-         
-        # try:
-        #     process_ona.process_coords(cur_ona_id, df_lagos, d)
-        # except:
-        #     f.append(cur_ona_id)
-        #     print("ERROR")
-        #     continue
-
-        # NW_lat_long = d[cur_ona_id]['top_left']
-        # SE_lat_long = d[cur_ona_id]['bot_right']        
-        # features = get_descartes_metadata(cur_ona_id,metadata_client, sat_type, NW_lat_long, 
-        #   SE_lat_long, start_time="2010-01-01", end_time="2019-01-01", cloud_pct=1.0)
-        
+        get_image_for_ona(sat_type, cur_ona_id, df_lagos, d, f, metadata_dict, method=method)
+        print("Succesfully processed Ona ID: ", cur_ona_id)
+     
     metadata_df = pd.DataFrame(metadata_dict)
-    metadata_df.to_csv("descartes/{}_data_review.csv".format(sat_type))
+    metadata_df.to_csv("descartes/{}_data_review_slums_{}.csv".format(sat_type, method))
 
-#get_image_for_ona(sat_type, ona_id, dataframe, output_dict, fails, method="Cloud_rank")
