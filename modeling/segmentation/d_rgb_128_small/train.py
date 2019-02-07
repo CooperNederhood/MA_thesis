@@ -108,8 +108,7 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
 
                 # Just round since we have binary classification
                 preds = torch.round(output)
-                correct_count = (preds == output).sum()
-                print("Correct_count = ", correct_count)
+                correct_count = (preds == target).sum()
                 
                 # Calculate loss
                 error = criterion(output, target)                
@@ -129,7 +128,6 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
                 # The error is divided by the batch size, so reverse this
                 running_loss += error.item() * batch_size
                 running_corrects += correct_count.item()
-                print("running_corrects = ", running_corrects)
                 running_IoU += test_eval.inter_over_union(preds, target) * batch_size
 
                 if detailed_time: 
@@ -137,7 +135,6 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
 
             epoch_loss = running_loss / total_obs
             epoch_acc = running_corrects / (total_obs*img_size*img_size) 
-            print("img_size = ", img_size)
             
             epoch_IoU = running_IoU / total_obs 
 

@@ -26,7 +26,10 @@ def inter_over_union(pred, target):
     log_or = torch.max(pred, target)
     log_and = pred*target 
 
-    rv = log_and.sum() / log_or.sum()
+    if log_or.sum() == 0:
+        rv = 1
+    else:
+        rv = log_and.sum() / log_or.sum()
 
     return rv.item()
 
