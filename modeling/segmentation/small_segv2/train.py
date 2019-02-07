@@ -27,7 +27,7 @@ EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=128
 
 import small_seg_model as model_def
 
-EPOCH_COUNT = 1
+EPOCH_COUNT = 10
 BATCH_SIZE = 16
 CHANNELS = 3
 img_size = 128
@@ -77,6 +77,7 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
 
             running_loss = 0.0
             running_corrects = 0
+            running_IoU = 0.0
             total_obs = 0
 
             # For each mini-batch in the dataloader
