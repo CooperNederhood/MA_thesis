@@ -18,15 +18,16 @@ sys.path.append('../../')
 from utilities import cnn_utils, transform_utils, test_eval
 
 
-MODEL_NAME = "seg_small"
-MODEL_DETAILS = '''Try a smaller model based on the structure of the base_classification
-model. End-to-end without feature passes. Contains random hor/vert flips for data augmentation
+MODEL_NAME = "d_rgb_128_small"
+MODEL_DETAILS = '''Small model, using Descartes 3-Band data found via the min cloud approach.
+Uses 128 for pic-size.
+Contains random hor/vert flips for data augmentation
 EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=128
 '''
 
 import small_seg_model as model_def
 
-EPOCH_COUNT = 15
+EPOCH_COUNT = 1
 BATCH_SIZE = 16
 CHANNELS = 3
 img_size = 128
@@ -34,8 +35,8 @@ input_channels = 3
 
 
 # Root directory for dataset
-root = '../../../data/training_data'
-data_root = os.path.join(root, "segmentation/size_128")
+root = '../../../data/training_data/descartes/RGB'
+data_root = os.path.join(root, "segmentation/size_{}".format(img_size))
 
 SAVE_ROOT = "./" 
 
