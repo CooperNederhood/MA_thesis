@@ -29,9 +29,9 @@ def inter_over_union(pred, target):
     if log_or.sum() == 0:
         rv = 1
     else:
-        rv = log_and.sum() / log_or.sum()
+        rv = log_and.sum().item() / log_or.sum().item()
 
-    return rv.item()
+    return rv
 
 def load_weights(raw_net, model_name, is_gpu):
     '''
