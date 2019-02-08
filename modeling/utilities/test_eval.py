@@ -220,6 +220,36 @@ def make_pred_map_segmentation(test_img, net, pic_size, step_size=None):
     pred_img = Image.fromarray(pred_map.numpy()*255).convert("RGB")
     return pred_img, pic_count
 
+def plot_encoder_pass_layers(net, image, thumbnail_size=None):
+    '''
+    Inputs:
+        net: trained FNN with encoder_pass method
+        image: batch-style image, shape = (1,BANDS,SIZE_X,SIZE_Y)
+        thumbnail_size: tuple denoting output size, ex. (256, 256). Maintains 
+                            the proper x,y proportions subject to size constraint
+    '''
+
+    net.eval()
+    with torch.no_grad():
+        inter_output = net.encoder_pass(image)
+
+        rv_dict = {}
+
+        for layer_num, layer in enumerate(inter_output):
+            ft_count = layer.shape[1]
+
+            ft_map_list = []
+            for ft_num in range(ft_count):
+                ft_map = layer[0,ft_num,:,:].numpy()
+                ft_map = Image.fromarray(ft_map*255, mode="L")
+                if thumbnail_size is not None:
+                    ft_map.thumbnail(thumbnail_size)
+                ft_map_list.append(ft_map)
+
+            rv_dict['Layer_{}'.format(layer_num)] = ft_map_list
+
+    return rv_dict
+
 
 if __name__ == "__main__":
     #########################################################################################
