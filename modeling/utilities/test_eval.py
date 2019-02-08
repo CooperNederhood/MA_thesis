@@ -21,6 +21,8 @@ import sys
 sys.path.append('../')
 #from utilities import cnn_utils, transform_utils
 
+plt.style.use('ggplot')
+
 def inter_over_union(pred, target):
 
     log_or = torch.max(pred, target)
@@ -54,19 +56,31 @@ def plot_training_dict(model_name):
     json_data = open(os.path.join(model_name, "training_hist.json")).read()
     training_dict = json.loads(json_data)
 
-    epoch_list = range(len(training_dict['train']['loss']))
+    epoch_list = range(1, len(training_dict['train']['loss'])+1)
 
-    plt.plot(epoch_list, training_dict['train']['loss'], label='train')
-    plt.plot(epoch_list, training_dict['val']['loss'], label='val')
+    plt.plot(epoch_list, training_dict['train']['loss'], label="Training phase")
+    plt.plot(epoch_list, training_dict['val']['loss'], label="Validation phase")
     plt.legend()
+    plt.title("Epoch avg mean-squared-error")
+    plt.ylim(0,1)
     plt.savefig('Loss.png')
 
     plt.clf()
-    plt.plot(epoch_list, training_dict['train']['acc'], label='train')
-    plt.plot(epoch_list, training_dict['val']['acc'], label='val')
+    plt.plot(epoch_list, training_dict['train']['acc'], label="Training phase")
+    plt.plot(epoch_list, training_dict['val']['acc'], label="Validation phase")
     plt.legend()
+    plt.title("Epoch pixel-level prediction accuracy")
+    plt.ylim(0,1)
     plt.savefig('Acc.png')
         
+    plt.clf()
+    plt.plot(epoch_list, training_dict['train']['IoU'], label="Training phase")
+    plt.plot(epoch_list, training_dict['val']['IoU'], label="Validation phase")
+    plt.legend()
+    plt.title("Epoch intersection-over-union score")
+    plt.ylim(0,1)
+    plt.savefig('IoU.png')
+
 
 def make_pred_map_classification(test_img, net, pic_size, step_size=None):
     '''
@@ -120,6 +134,35 @@ def make_pred_map_classification(test_img, net, pic_size, step_size=None):
             i += step_size
 
     return pred_map_cat, pred_map, pic_count
+
+def calc_buffer_needed(test_img, pic_size, step_size):
+    '''
+    To make predictions on test_img, given a network that accepts input
+    of size=pic_size and a step_size>1, there will almost certainly NOT
+    be a perfect alignment, resulting in a prediction image smaller than
+    the input test_img. Thus, calculate a buffer needed to add to the test_img
+    resulting in a perfect fit
+    '''
+
+    # Check that size gives a two dimensional size, without channels
+    assert len(test_img.size) == 2
+
+    buffer_dict = {}
+    for i, img_size in enumerate(test_img.size):
+        remainder = (img_size - pic_size) % step_size
+        added_buffer = step_size - remainder
+
+        assert (img_size + added_buffer - pic_size) % step_size == 0
+
+        if i==0:
+            buffer_dict['x'] = added_buffer
+        else:
+            buffer_dict['y'] = added_buffer
+
+    return buffer_dict  
+
+
+
 
 def make_pred_map_segmentation(test_img, net, pic_size, step_size=None):
     '''
@@ -181,62 +224,27 @@ def make_pred_map_segmentation(test_img, net, pic_size, step_size=None):
 if __name__ == "__main__":
     #########################################################################################
     # MODEL SPECIFIC:
-    from modeling.segmentation import base_segmentation_model
+    #from modeling.segmentation import base_segmentation_model
     #from modeling.classification import base_classification_model
 
     CHANNELS = 3 
     img_size = 128
+    step_size = img_size
     model_name = "seg_base"
     #model_name = "class_base"
     #########################################################################################
     THESIS_ROOT = "../../"
     DATA_ROOT = os.path.join(THESIS_ROOT, "data")
 
-    IN_SAMPLE_ROOT = "test_images/in_sample"
-    OUT_SAMPLE_ROOT = os.path.join(DATA_DIR, "aoi")
+    #IN_SAMPLE_ROOT = "test_images/in_sample"
+    #OUT_SAMPLE_ROOT = os.path.join(DATA_DIR, "aoi")
 
-    # Initialize model and the update to trained weights
-    net = base_segmentation_model.segNet(img_size)
-    net = load_weights(net, model_name, is_gpu=False)
+    ge_path = os.path.join(DATA_ROOT, "google_earth", "zoom_18", "slums")
 
-    aoi_files = os.listdir(OUT_SAMPLE_ROOT)
-
-    # for aoi in aoi_files:
-    #     img = Image.open(os.path.join(OUT_SAMPLE_ROOT, aoi))
-    #     img_array = transforms.ToTensor()(img)
-
-    #     pred_map_cat, pred_map, pic_count = make_pred_map(img_array, net, 128, 128)
-
-    #     pred_img = Image.fromarray(pred_map*255).convert('RGB')
-    #     save_out = os.path.join("aoi_test", aoi)
-
-    #     pred_img.save(save_out)
-
-    #     print("Predicted file {} tiled in {} subimages".format(aoi, pic_count))
-
-    aoi = '1_4.png'
-    img = Image.open(os.path.join(OUT_SAMPLE_ROOT, aoi))
-    img_array = transforms.ToTensor()(img)
-
-    pred_map_cat, pred_map, pic_count = make_pred_map(img_array, net, 128, 128)
-
-    pred_img = Image.fromarray(pred_map*255).convert('RGB')
-    save_out = os.path.join("aoi_test", aoi)
-
-    pred_img.save(save_out)
-
-    print("Predicted file {} tiled in {} subimages".format(aoi, pic_count))
-
-
-
-    # #f = "ona_id54_image.png"
-    # f = "ona_id50_image.png"
-    # img = Image.open(os.path.join(IN_SAMPLE_ROOT, f))
-    # img_array = transforms.ToTensor()(img)
-
-    # pred_map_cat, pred_map, pic_count = make_pred_map(img_array, net, 128, 128)
-
-    # pred_img = Image.fromarray(pred_map*255).convert('RGB')
-    # pred_img.show()
-    # img.show()
+    #f = "ona_id54_image.png"
+    f = "ona_id14_image.png"
+    img = Image.open(os.path.join(ge_path, f))
+    
+    buffer_dict = calc_buffer_needed(img, img_size, step_size)
+    
 
