@@ -66,20 +66,20 @@ class TestNet(nn.Module):
 
     def forward(self, x):
 
-    	# encode
-    	x = F.relu(self.conv1a(x))
-    	x = F.max_pool2d(x, 2)
-    	x = F.relu(self.conv2a(x))
-    	x = F.max_pool2d(x, 2)
+        # encode
+        x = F.relu(self.conv1a(x))
+        x = F.max_pool2d(x, 2)
+        x = F.relu(self.conv2a(x))
+        x = F.max_pool2d(x, 2)
         x = F.relu(self.conv3a(x))
     
 
-       	x = self.tconv1(x)
+        x = self.tconv1(x)
         x = F.relu(self.up_conv1a(x))
         x = self.tconv2(x)
-    	x = F.sigmoid(self.up_conv2a(x))
+        x = F.sigmoid(self.up_conv2a(x))
 
-    	return x 
+        return x 
 
 
 class SegmentationDataset(utils.data.Dataset):
@@ -194,22 +194,22 @@ ITER_COUNT = 30
 train_dset_sub = [train_dset[0], train_dset[7]]
 for i in range(ITER_COUNT):
 
-	iter_loss = 0
-	for img, mask in train_dset_sub:
-		optimizer.zero_grad()
+    iter_loss = 0
+    for img, mask in train_dset_sub:
+        optimizer.zero_grad()
 
-		img_b = img.unsqueeze(0)
-		mask_b = mask.unsqueeze(0)
+        img_b = img.unsqueeze(0)
+        mask_b = mask.unsqueeze(0)
 
-		out = net(img_b).squeeze(0)
+        out = net(img_b).squeeze(0)
 
-		out = out.view(mask_b.shape)
+        out = out.view(mask_b.shape)
 
-		loss = criterion_loss(out, mask_b)
+        loss = criterion_loss(out, mask_b)
 
-		loss.backward()
-		optimizer.step()
+        loss.backward()
+        optimizer.step()
 
-		iter_loss += loss 
+        iter_loss += loss 
 
-	print("[{}][{}] loss = {}".format(i, ITER_COUNT, iter_loss/len(train_dset)))
+    print("[{}][{}] loss = {}".format(i, ITER_COUNT, iter_loss/len(train_dset)))
