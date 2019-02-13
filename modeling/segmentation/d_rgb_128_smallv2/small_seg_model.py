@@ -35,10 +35,10 @@ class SmallSegNet(nn.Module):
         
         # Define layers for decoding
         self.tconv1 = nn.ConvTranspose2d(in_channels=128, out_channels=64, kernel_size=2, stride=2)
-        self.up_conv1a = nn.Conv2d(in_channels=64*2, out_channels=64, kernel_size=3, padding=1)
+        self.up_conv1a = nn.Conv2d(in_channels=64*2, out_channels=64, kernel_size=5, padding=2)
 
         self.tconv2 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=2, stride=2)
-        self.up_conv2a = nn.Conv2d(in_channels=32*2, out_channels=32, kernel_size=3, padding=1)
+        self.up_conv2a = nn.Conv2d(in_channels=32*2, out_channels=32, kernel_size=5, padding=2)
 
         # Layer for classification
         self.final_conv = nn.Conv2d(in_channels=32, out_channels=1, kernel_size=1)

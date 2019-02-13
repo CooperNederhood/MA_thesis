@@ -28,8 +28,8 @@ EPOCH_COUNT = 15; BATCH_SIZE=3; img_size=128
 
 import small_seg_model as model_def
 
-EPOCH_COUNT = 5
-BATCH_SIZE = 8
+EPOCH_COUNT = 25
+BATCH_SIZE = 3 
 CHANNELS = 3
 img_size = 128
 input_channels = 3
@@ -187,6 +187,6 @@ net = net.to(device)
 optimizer = optim.Adam(net.parameters())
 
 
-# trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
+trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
 
 # cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
