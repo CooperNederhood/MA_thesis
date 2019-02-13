@@ -95,15 +95,15 @@ def join_as_grid(pic_list, grid_size):
     return out_img 
 
 
-path = "../segmentation/d_rgb_256_small/inter_layers/Layer_0/"
-path2 = "../segmentation/d_rgb_256_small/inter_layers/"
+# path = "../segmentation/d_rgb_256_small/inter_layers/Layer_0/"
+# path2 = "../segmentation/d_rgb_256_small/inter_layers/"
 
-file_list = ["ft_map{}.png".format(x) for x in range(32)]
-img_list = []
-for f in file_list:
-    img = Image.open(os.path.join(path, f))
-    img.thumbnail((256, 256))
-    img_list.append(img)
+# file_list = ["ft_map{}.png".format(x) for x in range(32)]
+# img_list = []
+# for f in file_list:
+#     img = Image.open(os.path.join(path, f))
+#     img.thumbnail((256, 256))
+#     img_list.append(img)
 
-grid0 = join_as_grid(img_list, (8,4) )
-#grid0.save(os.path.join(path2, "tiled", "grid.png"))
+# grid0 = join_as_grid(img_list, (8,4) )
+# #grid0.save(os.path.join(path2, "tiled", "grid.png"))

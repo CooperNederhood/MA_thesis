@@ -1,3 +1,4 @@
+
 import torch 
 import torch.nn as nn 
 import torch.nn.functional as F 
@@ -25,9 +26,9 @@ class SmallSegNet(nn.Module):
         self.input_channels = input_channels
         self.my_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.conv1a = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, padding=1)
-        self.conv2a = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=3, padding=1)
-        self.conv3a = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, padding=1)
+        self.conv1a = nn.Conv2d(in_channels=3, out_channels=32, kernel_size=5, padding=2)
+        self.conv2a = nn.Conv2d(in_channels=32, out_channels=64, kernel_size=5, padding=2)
+        self.conv3a = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=5, padding=2)
 
         # Define layers for bottleneck
 
@@ -157,7 +158,10 @@ class SegmentationDataset(utils.data.Dataset):
         mask_files = os.listdir(mask_root)
         assert image_files == mask_files
 
-        return image_files 
+        # LIMIT TO JUST "ona_id20_image"
+        rv_limited = [x for x in image_files if "ona_id20_image" in x]
+
+        return rv_limited 
 
 
 def convert_img_to_2D_mask(tensor_img):
