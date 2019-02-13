@@ -49,11 +49,14 @@ class TestNet(nn.Module):
         #self.conv3a = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=5, padding=2)
 
         # Define layers for bottleneck
-
+        self.conv3a = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=5, padding=2)
         
         # Define layers for decoding
-        self.tconv1 = nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=2, stride=2)
-        self.up_conv1a = nn.Conv2d(in_channels=32, out_channels=1, kernel_size=5, padding=2)
+        self.tconv1 = nn.ConvTranspose2d(in_channels=64, out_channels=64, kernel_size=2, stride=2)
+        self.up_conv1a = nn.Conv2d(in_channels=64, out_channels=32, kernel_size=3, padding=1)
+
+        self.tconv2 = nn.ConvTranspose2d(in_channels=32, out_channels=32, kernel_size=2, stride=2)
+        self.up_conv2a = nn.Conv2d(in_channels=32, out_channels=1, kernel_size=3, padding=1)
 
         #self.tconv2 = nn.ConvTranspose2d(in_channels=64, out_channels=32, kernel_size=2, stride=2)
         #self.up_conv2a = nn.Conv2d(in_channels=32*2, out_channels=32, kernel_size=5, padding=2)
@@ -68,9 +71,13 @@ class TestNet(nn.Module):
     	x = F.max_pool2d(x, 2)
     	x = F.relu(self.conv2a(x))
     	x = F.max_pool2d(x, 2)
+        x = F.relu(self.conv3a(x))
+    
 
-    	x = self.tconv1(x)
-    	x = F.sigmoid(self.up_conv1a(x))
+       	x = self.tconv1(x)
+        x = F.relu(self.up_conv1a(x))
+        x = self.tconv2(x)
+    	x = F.sigmoid(self.up_conv2a(x))
 
     	return x 
 
@@ -165,8 +172,9 @@ def convert_img_to_2D_mask(tensor_img):
 
     return tensor_img[0,:,:]
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-net = TestNet(3, 128)
+net = TestNet(3, 128).to(device)
 root = '../../../data/training_data/descartes/RGB'
 data_root = os.path.join(root, "segmentation/size_{}".format(img_size))
 
@@ -180,7 +188,7 @@ mask_b = mask.unsqueeze(0)
 
 criterion_loss = nn.BCELoss()
 
-optimizer = optim.Adam(net.parameters())
+optimizer = optim.Adam(net.parameters()).to(device)
 
 ITER_COUNT = 30
 train_dset_sub = [train_dset[0], train_dset[7]]
