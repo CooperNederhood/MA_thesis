@@ -188,7 +188,7 @@ mask_b = mask.unsqueeze(0)
 
 criterion_loss = nn.BCELoss()
 
-optimizer = optim.Adam(net.parameters()).to(device)
+optimizer = optim.Adam(net.parameters())
 
 ITER_COUNT = 30
 train_dset_sub = [train_dset[0], train_dset[7]]
@@ -198,8 +198,8 @@ for i in range(ITER_COUNT):
     for img, mask in train_dset_sub:
         optimizer.zero_grad()
 
-        img_b = img.unsqueeze(0)
-        mask_b = mask.unsqueeze(0)
+        img_b = img.unsqueeze(0).to(device)
+        mask_b = mask.unsqueeze(0).to(device)
 
         out = net(img_b).squeeze(0)
 
