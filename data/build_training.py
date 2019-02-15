@@ -81,6 +81,8 @@ def build_training_data(zoom_level, pic_size, step_size, class_threshold,
         nonslum_image_path: (str) path to additional non-slum images we need
     '''
 
+    f_ext = "png" if img_type=="PIL" else "npy"
+
     # Make folders, if needed
     if not os.path.isdir(os.path.join(output_path, "segmentation")):
         os.mkdir(os.path.join(output_path, "segmentation"))
@@ -104,26 +106,31 @@ def build_training_data(zoom_level, pic_size, step_size, class_threshold,
         os.mkdir(os.path.join(classification_output, "nonslum"))
 
     # First, process all the Ona slum images and their corresponding masks
-    ona_images = os.listdir(mask_path)
+    ona_images = [x.replace(".png", "") for x in os.listdir(mask_path)]
 
     for img_id in ona_images:
+
+        img_id = img_id + "." + f_ext 
 
         # For RGB images, the file is a PIL image
         if img_type == "PIL":
             ona_img = np.array(Image.open(os.path.join(slum_image_path, img_id)))
            
         # But for multiband images, the file is a numpy array 
+        # The channel will be FIRST, but it should be put to last
+        # NOTE: it looks like channel 3 is the NIR band 
         else:
             assert img_type == "Numpy_array"
             ona_img = np.load(os.path.join(slum_image_path, img_id))
+            ona_img = np.moveaxis(ona_img, 0, 2)
 
-        ona_mask = np.array(Image.open(os.path.join(mask_path, img_id)))
+        ona_mask = np.array(Image.open(os.path.join(mask_path, img_id.replace(".npy", ".png"))))
 
         if img_type == "PIL":
             assert ona_img.shape == ona_mask.shape
         else:
-            assert ona_img.shape[1:] == ona_mask.shape[1:]
-            assert ona_img.shape[0] > 3
+            assert ona_img.shape[0:2] == ona_mask.shape[0:2]
+            assert ona_img.shape[2] > 3
 
         i = pic_size
         j = pic_size
@@ -133,21 +140,32 @@ def build_training_data(zoom_level, pic_size, step_size, class_threshold,
         pic_num = 0 
         while i < max_i:
             while j < max_j:
-                sub_img = Image.fromarray(ona_img[i-pic_size:i, j-pic_size:j, :])
+                #sub_img = Image.fromarray(ona_img[i-pic_size:i, j-pic_size:j, :])
                 sub_mask = Image.fromarray(ona_mask[i-pic_size:i, j-pic_size:j, :])
+                sub_img = ona_img[i-pic_size:i, j-pic_size:j, :]
 
-                output_file = img_id.replace(".png", "{}.png".format(pic_num))
+                output_file = img_id.replace(".{}".format(f_ext), "{}.{}".format(pic_num, f_ext))
+                mask_output_file = img_id.replace(".npy", ".png")
+                mask_output_file = mask_output_file.replace(".png", "{}.png".format(pic_num))
 
-                # Save out the sub-image and the sub-mask in the segmentation folder
-                sub_img.save(os.path.join(os.path.join(segmentation_output, "image"), output_file))
-                sub_mask.save(os.path.join(os.path.join(segmentation_output, "mask"), output_file))
+                # Save out the sub-image in the segmentation folder
+                if img_type == "PIL":
+                    sub_img = Image.fromarray(sub_img)     
+                    sub_img.save(os.path.join(os.path.join(segmentation_output, "image"), output_file))
+                else:
+                    assert img_type == "Numpy_array"
+                    np.save(os.path.join(segmentation_output, "image", output_file), sub_img)
+                
+                # Save out the sub-mask the same way regardless of whether RGB or 4-Band
+                sub_mask.save(os.path.join(segmentation_output, "mask", mask_output_file))
 
                 # Save out the sub-image in the classification folder
                 pic_class = determine_image_class(ona_mask[i-pic_size:i, j-pic_size:j, :], class_threshold)
 
                 print("Ona ID={}; pic_num={}; class={}".format(img_id, pic_num, pic_class))
 
-                sub_img.save(os.path.join(os.path.join(classification_output, pic_class), output_file))
+                # we're not really using the classification model so just skip it for the time being
+                #sub_img.save(os.path.join(os.path.join(classification_output, pic_class), output_file))
 
                 pic_num += 1
 
@@ -161,12 +179,28 @@ def build_training_data(zoom_level, pic_size, step_size, class_threshold,
     nonslum_images = os.listdir(nonslum_image_path)
 
     for img_id in nonslum_images:
-        img = np.array(Image.open(os.path.join(nonslum_image_path, img_id)))
-        mask = np.zeros(img.shape, dtype=np.uint8)
 
-        img.dtype
+        # For RGB images, the file is a PIL image
+        if img_type == "PIL":
+            img = np.array(Image.open(os.path.join(nonslum_images, img_id)))
+           
+        # But for multiband images, the file is a numpy array 
+        # The channel will be FIRST, but it should be put to last
+        # NOTE: it looks like channel 3 is the NIR band 
+        else:
+            assert img_type == "Numpy_array"
+            img = np.load(os.path.join(nonslum_image_path, img_id))
+            img = np.moveaxis(img, 0, 2)
 
-        assert img.shape == mask.shape
+        # Make mask same for both
+        x, y = img.shape[0:2]
+        mask = np.zeros([x,y,3], dtype=np.uint8)
+
+        if img_type == "PIL":
+            assert ona_img.shape == ona_mask.shape
+        else:
+            assert ona_img.shape[0:2] == ona_mask.shape[0:2]
+            assert ona_img.shape[2] > 3
 
         i = pic_size
         j = pic_size
@@ -176,21 +210,31 @@ def build_training_data(zoom_level, pic_size, step_size, class_threshold,
         pic_num = 0
         while i < max_i:
             while j < max_j:
-                sub_img = Image.fromarray(img[i-pic_size:i,j-pic_size:j, :])
+                #sub_img = Image.fromarray(ona_img[i-pic_size:i, j-pic_size:j, :])
                 sub_mask = Image.fromarray(mask[i-pic_size:i, j-pic_size:j, :])
+                sub_img = img[i-pic_size:i, j-pic_size:j, :]
 
-                output_file = img_id.replace(".png", "{}.png".format(pic_num))
+                output_file = img_id.replace(".{}".format(f_ext), "{}.{}".format(pic_num, f_ext))
+                mask_output_file = img_id.replace(".npy", ".png")
+                mask_output_file = mask_output_file.replace(".png", "{}.png".format(pic_num))
 
-                # Save out the sub-image and the sub-mask in the segmentation folder
-                sub_img.save(os.path.join(os.path.join(segmentation_output, "image"), output_file))
-                sub_mask.save(os.path.join(os.path.join(segmentation_output, "mask"), output_file))
+                # Save out the sub-image in the segmentation folder
+                if img_type == "PIL":
+                    sub_img = Image.fromarray(sub_img)     
+                    sub_img.save(os.path.join(os.path.join(segmentation_output, "image"), output_file))
+                else:
+                    assert img_type == "Numpy_array"
+                    np.save(os.path.join(os.path.join(segmentation_output, "image"), output_file), sub_img)
+                
+                # Save out the sub-mask the same way regardless of whether RGB or 4-Band
+                sub_mask.save(os.path.join(os.path.join(segmentation_output, "mask"), mask_output_file))
 
                 # Save out the sub-image in the classification folder
                 pic_class = "nonslum"
 
                 print("Nonslum ID={}; pic_num={}; class={}".format(img_id, pic_num, pic_class))
 
-                sub_img.save(os.path.join(os.path.join(classification_output, pic_class), output_file))
+                #sub_img.save(os.path.join(os.path.join(classification_output, pic_class), output_file))
 
                 pic_num += 1
 
@@ -198,13 +242,15 @@ def build_training_data(zoom_level, pic_size, step_size, class_threshold,
             j = pic_size
             i += step_size
 
-def train_val_split_segmentation(train_pct):
+def train_val_split_segmentation(train_pct, img_type="PIL"):
     '''
     The function build_training_data just creates the two broad classes
     but does not do a training/validation split. Thus, import this function,
     then change to the directory where the data is and point using the target_folder
     to the data you want to split and it will put it into train/val folders
     '''
+
+    f_ext = ".png" if img_type=="PIL" else ".npy"
 
     if not os.path.isdir("train"):
         os.mkdir("train")
@@ -236,8 +282,8 @@ def train_val_split_segmentation(train_pct):
         dst = os.path.join("train", "mask", f)
         shutil.copy(src, dst)
 
-        src = os.path.join("image", f)
-        dst = os.path.join("train", "image", f)
+        src = os.path.join("image", f.replace(".png", f_ext))
+        dst = os.path.join("train", "image", f.replace(".png", f_ext))
         shutil.copy(src, dst)
 
     for f in val_files:
@@ -245,8 +291,8 @@ def train_val_split_segmentation(train_pct):
         dst = os.path.join("val", "mask", f)
         shutil.copy(src, dst)
 
-        src = os.path.join("image", f)
-        dst = os.path.join("val", "image", f)
+        src = os.path.join("image", f.replace(".png", f_ext))
+        dst = os.path.join("val", "image", f.replace(".png", f_ext))
         shutil.copy(src, dst)
 
 def train_val_split_classification(target_folder, train_pct):
@@ -296,14 +342,20 @@ if __name__ == "__main__":
     # output_path = "training_data/google_earth"
 
 
-    # USED FOR PLEIADES IMAGES
+    # USED FOR PLEIADES IMAGES -- RGB
+    # mask_path = "labelbox/pleiades"
+    # slum_image_path = "descartes/RGB/min_cloud/slums"
+    # nonslum_image_path = "descartes/RGB/min_cloud/not_slums"
+    # output_path = "training_data/descartes/RGB"
+
+    # USED FOR PLEIADES IMAGES -- 4Band
     mask_path = "labelbox/pleiades"
-    slum_image_path = "descartes/RGB/min_cloud/slums"
-    nonslum_image_path = "descartes/RGB/min_cloud/not_slums"
-    output_path = "training_data/descartes/RGB"
+    slum_image_path = "descartes/Four_band/min_cloud/slums"
+    nonslum_image_path = "descartes/Four_band/min_cloud/not_slums"
+    output_path = "training_data/descartes/Four_band"
 
     build_training_data(zoom_level, pic_size, step_size, class_threshold, 
-        mask_path, slum_image_path, nonslum_image_path, output_path)
+        mask_path, slum_image_path, nonslum_image_path, output_path, img_type="Numpy_array")
 
 
 
