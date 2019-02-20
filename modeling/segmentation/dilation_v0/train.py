@@ -22,7 +22,7 @@ MODEL_NAME = "dilation_v1"
 MODEL_DETAILS = '''Using Descartes data, but explores use of dilated convolutions
 to expand the receptive field of the segmentation
 Contains random hor/vert flips for data augmentation
-EPOCH_COUNT = 15; BATCH_SIZE=16; img_size=256
+EPOCH_COUNT = 15; BATCH_SIZE=8; img_size=256
 '''
 
 import dilation_model as model_def
