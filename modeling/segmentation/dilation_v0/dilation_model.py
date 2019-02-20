@@ -30,28 +30,36 @@ class DilationNet_v1(nn.Module):
         self.my_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         self.c1 = nn.Conv2d(in_channels=input_channels, out_channels=64, kernel_size=3)
+        self.relu1 = nn.ReLU()
         self.c2 = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3)
+        self.relu2 = nn.ReLU()
 
         self.c3 = nn.Conv2d(in_channels=64, out_channels=128, kernel_size=3, dilation=2)
+        self.relu3 = nn.ReLU()
         self.c4 = nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, dilation=2)
+        self.relu4 = nn.ReLU()
 
         self.c5 = nn.Conv2d(in_channels=128, out_channels=256, kernel_size=3, dilation=3)
+        self.relu5 = nn.ReLU()
         self.c6 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, dilation=3)
+        self.relu6 = nn.ReLU()
         self.c7 = nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, dilation=3)
+        self.relu7 = nn.ReLU()
 
         self.c8 = nn.Conv2d(in_channels=256, out_channels=1024, kernel_size=7, dilation=3)
+        self.relu8 = nn.ReLU()
         self.c9 = nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=1)
+        self.relu9 = nn.ReLU()
         self.c10 = nn.Conv2d(in_channels=1024, out_channels=1, kernel_size=1)
 
 
     def forward(self, x):
 
-        # Use ReLU activation for all Conv except final
-        for l in self.children()[0:-1]:
-            x = F.relu(l(x))
+        for l in self.children():
+            x = l(x)
 
         # Use sigmoid for final Conv
-        x = torch.sigmoid(self.c10(x))
+        x = torch.sigmoid(x)
 
         return x 
 
