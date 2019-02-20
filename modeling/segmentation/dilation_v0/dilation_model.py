@@ -46,8 +46,12 @@ class DilationNet_v1(nn.Module):
 
     def forward(self, x):
 
-        for l in self.children():
-            x = l(x)
+        # Use ReLU activation for all Conv except final
+        for l in self.children()[0:-1]:
+            x = F.relu(l(x))
+
+        # Use sigmoid for final Conv
+        x = torch.sigmoid(self.c10(x))
 
         return x 
 
