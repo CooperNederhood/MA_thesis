@@ -18,7 +18,7 @@ sys.path.append('../../')
 from utilities import cnn_utils, transform_utils, test_eval
 
 
-MODEL_NAME = "NIR_128_small"
+MODEL_NAME = "NIR_256_small"
 MODEL_DETAILS = '''Small model, using Descartes 3-Band data found via the min cloud approach.
 Uses 128 for pic-size.
 Contains random hor/vert flips for data augmentation
@@ -27,7 +27,7 @@ EPOCH_COUNT = 15; BATCH_SIZE=8; img_size=128
 
 import small_seg_model as model_def
 
-EPOCH_COUNT = 5
+EPOCH_COUNT = 5 
 BATCH_SIZE = 8
 img_size = 256
 input_channels = 4
@@ -91,7 +91,7 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
 
                 images, target = data
                 img_size = target.shape[-1]
-                assert img_size == 128
+                #assert img_size == 128
 
                 target = torch.tensor(target, dtype=torch.float32, device=device)
                 images = images.to(device)
@@ -171,7 +171,7 @@ val_root = os.path.join(data_root, "val")
 
 train_dset = model_def.SegmentationDataset(train_root, list_common_trans=common_transforms,
                                   list_img_trans=None, f_type = "Numpy_array")
-val_dset = model_def.SegmentationDataset(val_root)
+val_dset = model_def.SegmentationDataset(val_root, f_type="Numpy_array")
 
 train_dset_loader = utils.data.DataLoader(train_dset, batch_size=BATCH_SIZE, shuffle=True)
 val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
