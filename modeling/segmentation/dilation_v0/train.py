@@ -27,10 +27,10 @@ EPOCH_COUNT = 15; BATCH_SIZE=8; img_size=256
 
 import dilation_model as model_def
 
-EPOCH_COUNT = 1
+EPOCH_COUNT = 5
 BATCH_SIZE = 8
 CHANNELS = 3
-IMG_SIZE = 256
+IMG_SIZE = 128
 
 
 # Root directory for dataset
@@ -168,9 +168,9 @@ net = model_def.DilationNet_v1(CHANNELS, IMG_SIZE)
 train_root = os.path.join(data_root, "train")
 val_root = os.path.join(data_root, "val")
 
-train_dset = SegmentationDataset(train_root, list_common_trans=common_transforms,
+train_dset = model_def.SegmentationDataset(train_root, list_common_trans=common_transforms,
                                  list_img_trans=None, trim=24)
-val_dset = SegmentationDataset(val_root, trim=24)
+val_dset = model_def.SegmentationDataset(val_root, trim=24)
 
 train_dset_loader = utils.data.DataLoader(train_dset, batch_size=BATCH_SIZE, shuffle=True)
 val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
