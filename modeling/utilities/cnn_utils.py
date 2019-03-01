@@ -17,8 +17,9 @@ import json
 import datetime 
 
 from functools import reduce 
+#import data_vis
 
-def save_model(model, model_name, state_dict, training_hist, model_details, root_path):
+def save_model(model, model_name, state_dict, training_hist, batch_hist, model_details, root_path):
 
     # Store everything in folder of the model name
     path = os.path.join(root_path, model_name)
@@ -28,9 +29,13 @@ def save_model(model, model_name, state_dict, training_hist, model_details, root
     # Save state dict
     torch.save(state_dict, os.path.join(path, 'model.pt') )
 
-    # Save training history
+    # Save training history - EPOCH
     with open(os.path.join(path, 'training_hist.json'), 'w') as fp:
         json.dump(training_hist, fp)
+
+    # Save training history - BATCH
+    with open(os.path.join(path, 'batch_hist.json'), 'w') as fp:
+        json.dump(batch_hist, fp)
 
     # Write out details of the model
     with open(os.path.join(path, 'Model_specs.txt'), 'w') as fp:
@@ -118,6 +123,23 @@ class FullyConnectedClassifier(nn.Module):
             x = layer(x)
         return x 
 
+
+def get_layer_output(input_img, net, layer_name, ft_num):
+    '''
+    Helper function, will make forward pass on input image until
+    target layer is reached. Returns the corresponding feature number
+    '''
+
+    out = input_img 
+    # make forward pass until were at our layer
+    for name, layer in net.named_children():
+        out = layer(out)
+        if name == layer_name:
+            break 
+
+    return out[0,ft_num,:,:]
+
+
 def get_max_activating_image(init_img, net, layer_name, ft_num, iter_count):
     '''
     Inputs:
@@ -135,10 +157,12 @@ def get_max_activating_image(init_img, net, layer_name, ft_num, iter_count):
     max_img = init_img.requires_grad_(True)
 
     for i in range(iter_count):
-        print("Taking step #",i)
-        out = net.conv_net.get_layer_output(max_img, layer_name)[0,ft_num,:,:]
-        out = torch.norm(out)
-        print("Act norm = ", out)
+        #print("Taking step #",i)
+
+        out = get_layer_output(max_img, net, layer_name, ft_num)
+
+        out = torch.mean(out)
+        #print("Activation norm for ft num {} in layer {} current = {}".format(ft_num, layer_name, out))
 
         out.backward()
 
@@ -147,18 +171,79 @@ def get_max_activating_image(init_img, net, layer_name, ft_num, iter_count):
         norm_grad = max_img.grad / torch.norm(max_img.grad)
 
         new_img = (max_img + step_size*norm_grad).detach()
-        new_out = net.conv_net.get_layer_output(new_img, layer_name)[0,ft_num,:,:]
+        new_out = get_layer_output(new_img, net, layer_name, ft_num)
 
         i = 0
         while torch.norm(new_out).item() < out.item():
             print("Cutting step size in half - ", i)
             step_size *= 0.5
             new_img = (max_img + step_size*norm_grad)
-            new_out = net.conv_net.get_layer_output(new_img, layer_name)[0,ft_num,:,:]
+            new_out = get_layer_output(new_img, net, layer_name, ft_num)
             i += 1
 
         assert new_img.requires_grad == False
 
         max_img = new_img.requires_grad_(True)
 
+    print("Activation norm for ft num {} in layer {} current = {}".format(ft_num, layer_name, out))
+
     return max_img 
+
+# path_model_zoo = "../../model_zoo"
+
+# vgg16 = models.vgg16(pretrained=False)
+# vgg16.load_state_dict(torch.load(os.path.join(path_model_zoo, "vgg16.pt")))
+# for param in vgg16.features.parameters():
+#     param.requires_grad = False 
+
+# vgg16_features = vgg16.features 
+
+# normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+# to_pil = transforms.ToPILImage()
+
+# # Iintiailze images
+# init_zero = torch.zeros(1,3,256,256)
+# init_gray_noise = np.random.random((1, 3, 256, 256)) * 0.01 + 128
+# init_gray_noise = torch.from_numpy(init_gray_noise).type(torch.float32)
+# init_noise = normalize(torch.randn(3,256,256)).unsqueeze(0)
+
+# image_zero = to_pil(init_zero.squeeze(0))
+# image_gray_noise = to_pil(init_gray_noise.squeeze(0))
+# image_noise = to_pil(init_noise.squeeze(0))
+
+
+def gen_max_act_image_map(init_val, net, layer_name, ft_count, iters):
+
+    d = int(np.sqrt(ft_count))
+    
+    vis_list = []
+    for cur_num in range(ft_count):
+        max_img = get_max_activating_image(init_val, net, layer_name, cur_num, iters).squeeze(0)
+        vis_list.append(to_pil(max_img))
+
+    total_pic = data_vis.join_as_grid(vis_list, (d,d)) 
+    return total_pic
+
+# # First 3 convolutional layers of VGG-16
+# layers = ['0', '2', '5']
+
+# ft_count = 16
+# steps = 1000
+
+# zero_maps = {}
+# print("DOING ZERO MAPS")
+# for l in layers:
+#     zero_maps[l] = gen_max_act_image_map(init_zero, vgg16_features, l, ft_count, steps)
+#     zero_maps[l].save('layer_'+l+'_zero.png')
+
+# gray_maps = {}
+# print("DOING GRAY MAPS")
+# for l in layers:
+#     gray_maps[l] = gen_max_act_image_map(init_gray_noise, vgg16_features, l, ft_count, steps)
+#     gray_maps[l].save('layer_'+l+'_gray.png')
+
+# noise_maps = {}
+# print("DOING NOISE MAPS")
+# for l in layers:
+#     noise_maps[l] = gen_max_act_image_map(init_noise, vgg16_features, l, ft_count, steps)
+#     noise_maps[l].save('layer_'+l+'_noise.png')

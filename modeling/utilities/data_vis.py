@@ -75,6 +75,9 @@ def join_as_grid(pic_list, grid_size):
     a consistent size and will fill with empty if grid_size
     is too big for the current pic_list
 
+    Inputs:
+        grid_size (tuple)
+
     '''
 
     x, y = pic_list[0].size 

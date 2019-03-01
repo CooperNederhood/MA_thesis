@@ -240,8 +240,4 @@ def convert_img_to_2D_mask(tensor_img):
     return tensor_img[0,:,:]
 
 
-net = Unet(3, 64)
 
-x = torch.randn(1, 3, 64, 64)
-
-out = net(x)

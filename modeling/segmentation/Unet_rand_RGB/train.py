@@ -60,6 +60,9 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
     # Initialize loss dict to record training, figures are per epoch
     epoch_loss_dict = {'train': {'acc': [], 'loss':[], 'IoU':[], 'time':[]}, 
                          'val': {'acc': [], 'loss':[], 'IoU':[], 'time':[]}}
+    batch_loss_dict = {'train': {'acc': [], 'loss':[], 'IoU':[]}, 
+                         'val': {'acc': [], 'loss':[], 'IoU':[]}}
+
     if detailed_time:
         epoch_loss_dict['train']['backward_pass_time'] = []
         epoch_loss_dict['train']['data_fetch_time'] = []
@@ -127,6 +130,10 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
                     total_pass += (time.time() - b_pass)
 
                 # The error is divided by the batch size, so reverse this
+                batch_loss_dict[phase]['acc'].append(correct_count.item()/batch_size)
+                batch_loss_dict[phase]['loss'].append(error.item())
+                batch_loss_dict[phase]['IoU'].append(test_eval.inter_over_union(preds, target))
+
                 running_loss += error.item() * batch_size
                 running_corrects += correct_count.item()
                 running_IoU += test_eval.inter_over_union(preds, target) * batch_size
@@ -157,7 +164,7 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
                 epoch, t, epoch_loss, epoch_acc))
 
 
-    return model, best_model_wts, epoch_loss_dict 
+    return model, best_model_wts, epoch_loss_dict, batch_loss_dict
    
 # Define trasnforms
 common_transforms = [transform_utils.RandomHorizontalFlip(0.5), 
@@ -187,6 +194,6 @@ net = net.to(device)
 optimizer = optim.Adam(net.parameters())
 
 
-# trained_net, best_model_wts, training_hist = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
+trained_net, best_model_wts, epoch_loss_dict, batch_loss_dict = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
 
-# cnn_utils.save_model(net, MODEL_NAME, best_model_wts, training_hist, MODEL_DETAILS, SAVE_ROOT)
+cnn_utils.save_model(net, MODEL_NAME, best_model_wts, epoch_loss_dict, batch_loss_dict, MODEL_DETAILS, SAVE_ROOT)
