@@ -29,6 +29,7 @@ EPOCH_COUNT = 1
 BATCH_SIZE = 4
 img_size = 256
 input_channels = 3
+LEARNING_RATE = 1e-5
 
 
 # Root directory for dataset
@@ -191,7 +192,7 @@ criterion_loss = nn.BCELoss()
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 net = net.to(device)
-optimizer = optim.Adam(net.parameters())
+optimizer = optim.Adam(net.parameters(), lr=LEARNING_RATE)
 
 
 trained_net, best_model_wts, epoch_loss_dict, batch_loss_dict = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)

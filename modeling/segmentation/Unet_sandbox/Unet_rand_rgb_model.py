@@ -82,6 +82,18 @@ class Unet(nn.Module):
         self.final_conv = nn.Conv2d(in_channels=64, out_channels=1, kernel_size=1)
 
 
+    def init_rand_weights(self):
+        '''
+        Per original paper, every convolutional layer is initialized with Gaussian
+        rand weights with std dev = sqrt(2/N)
+        '''
+
+        for l in self.layers:
+            if type(l) == nn.Conv2d:
+                N = l.kernel_size[0] * l.kernel_size[1] * l.in_channels
+                nn.itit.normal_(l.weights, mean=0, std=np.sqrt(2/N))
+
+
     def encoder_pass(self, x):
 
         # Encode
