@@ -42,6 +42,8 @@ class FrontEnd_ContextModel(nn.Module):
         self.load_weights = load_weights
         self.include_activ = include_activ
 
+        self.my_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
         # Initialize the front-end model and load the weights
         if front_end_type == "Unet":
             self.FE_model = Unet.Unet(input_channels, img_size, include_final_conv=False)
