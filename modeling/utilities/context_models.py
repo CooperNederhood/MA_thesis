@@ -17,7 +17,7 @@ import json
 
 sys.path.append("../")
 from segmentation.Unet_rand_RGB import Unet_rand_rgb_model as Unet 
-#import test_eval 
+import test_eval 
 
 class FrontEnd_ContextModel(nn.Module):
 

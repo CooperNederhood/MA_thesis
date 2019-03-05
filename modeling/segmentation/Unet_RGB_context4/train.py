@@ -35,7 +35,7 @@ IS_GPU = device == "cuda:0"
 CONTEXT_LAYER_COUNT = 4
 OUTPUT_CHANNELS = 1
 
-EPOCH_COUNT = 5 
+EPOCH_COUNT = 1 
 BATCH_SIZE = 4
 img_size = 256
 input_channels = 3
@@ -114,6 +114,9 @@ def train_segmentation(model, num_epochs, dataloader_dict, criterion, optimizer,
                 output = model(images)
                 output = output.view(target.shape)
 
+                assert output.min().item() > 0
+                assert output.max().item() < 1
+
                 # Just round since we have binary classification
                 preds = torch.round(output)
                 correct_count = (preds == target).sum()
@@ -177,7 +180,7 @@ common_transforms = [transform_utils.RandomHorizontalFlip(0.5),
 
 # Define network
 net = context_models.FrontEnd_ContextModel(FRONT_END_TYPE, PATH_TO_FRONT_END_WEIGHTS, IS_GPU, 
-        input_channels, img_size, CONTEXT_LAYER_COUNT, OUTPUT_CHANNELS, load_weights=False, include_activ=False)
+        input_channels, img_size, CONTEXT_LAYER_COUNT, OUTPUT_CHANNELS)
 
 # Define dataloaders
 train_root = os.path.join(data_root, "train")
