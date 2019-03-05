@@ -15,6 +15,7 @@ import sys
 import json 
 
 sys.path.append('../../')
+sys.path.append('../../utilities')
 from utilities import cnn_utils, transform_utils, test_eval
 
 class SegmentationDataset(utils.data.Dataset):

@@ -15,6 +15,7 @@ import sys
 import json 
 
 sys.path.append('../../')
+sys.path.append('../../utilities')
 from utilities import cnn_utils, transform_utils, test_eval, context_models
 
 
@@ -202,6 +203,6 @@ net = net.to(device)
 optimizer = optim.Adam(net.parameters())
 
 
-trained_net, best_model_wts, epoch_loss_dict, batch_loss_dict = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
+# trained_net, best_model_wts, epoch_loss_dict, batch_loss_dict = train_segmentation(net, EPOCH_COUNT, dset_loader_dict, criterion_loss, optimizer)
 
-cnn_utils.save_model(net, MODEL_NAME, best_model_wts, epoch_loss_dict, batch_loss_dict, MODEL_DETAILS, SAVE_ROOT)
+# cnn_utils.save_model(net, MODEL_NAME, best_model_wts, epoch_loss_dict, batch_loss_dict, MODEL_DETAILS, SAVE_ROOT)
