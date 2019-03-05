@@ -19,15 +19,16 @@ from utilities import cnn_utils, transform_utils, test_eval
 
 class Unet(nn.Module):
 
-    def __init__(self, input_channels, img_size, layer2_ft=64):
+    def __init__(self, input_channels, img_size, layer2_ft=64, include_final_conv=True):
         super(Unet, self).__init__()
 
         # Define layers for encoding
         self.ft2 = layer2_ft
+        self.include_final_conv = include_final_conv
         self.input_channels = input_channels
         self.my_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.conv1a = nn.Conv2d(in_channels=3, out_channels=64, kernel_size=3, padding=1)
+        self.conv1a = nn.Conv2d(in_channels=input_channels, out_channels=64, kernel_size=3, padding=1)
         self.BN1a = nn.BatchNorm2d(64)
         self.conv1b = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
         self.BN1b = nn.BatchNorm2d(64)
@@ -78,7 +79,8 @@ class Unet(nn.Module):
         self.up_conv4b = nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, padding=1)
         self.up_BN4b = nn.BatchNorm2d(64)
 
-        # Layer for classification
+        # Layer for classification -- even if include_final_conv==False, we include this
+        #   layer which allows standard weight loading. Implement the False in the forward pass
         self.final_conv = nn.Conv2d(in_channels=64, out_channels=1, kernel_size=1)
 
 
@@ -128,9 +130,10 @@ class Unet(nn.Module):
         y = F.relu(self.up_BN4a(self.up_conv4a(torch.cat((y,x1),1))))
         y = F.relu(self.up_BN4b(self.up_conv4b(y)))
 
-        y = torch.sigmoid(self.final_conv(y))
-        assert y.shape[-2:] == x.shape[-2:] 
-
+        if self.include_final_conv:
+            y = torch.sigmoid(self.final_conv(y))
+            assert y.shape[-2:] == x.shape[-2:] 
+        
         return y
 
 
