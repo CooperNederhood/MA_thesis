@@ -19,6 +19,29 @@ sys.path.append("../")
 from segmentation.Unet_rand_RGB import Unet_rand_rgb_model as Unet 
 import test_eval 
 
+def identity_weights(layer):
+
+    # Only update convolution layers with kernel=3, the final convol
+    #       layer decreases the layer count to 2D
+    if type(layer) == nn.Conv2d:
+        if layer.weight.shape[-1] == 3:
+            
+            mid = 1
+
+            layer.bias.data.fill_(0.0)
+            layer.weight.data.fill_(0.0)
+
+            in_channels = layer.weight.shape[1]
+            num_filters = layer.weight.shape[0]
+
+
+
+            for i in range(num_filters):
+                layer.weight.data[i, i, mid, mid] = 1
+
+
+
+
 class FrontEnd_ContextModel(nn.Module):
 
     def __init__(self, front_end_type, path_to_front_end_weights, is_gpu, input_channels, img_size, 
@@ -55,6 +78,11 @@ class FrontEnd_ContextModel(nn.Module):
         if self.load_weights:
             self.FE_model = test_eval.load_weights(self.FE_model, self.path_to_front_end_weights, self.is_gpu)
         self.Context_model = ContextModel(64, self.context_layer_count, self.output_channels, self.include_activ)
+
+        self._init_context_weights()
+
+    def _init_context_weights():
+        self.Context_model.init_weights_to_identity()
 
     def forward(self, x):
 
@@ -94,7 +122,7 @@ class ContextModel(nn.Module):
         '''
         The weights are initialized st convolutions act as the identity
         '''
-        pass 
+        self.apply(identity_weights) 
 
 
     def forward(self, x):
@@ -119,11 +147,23 @@ class ContextModel(nn.Module):
 # front_end_type = "Unet" 
 # path_to_front_end_weights = "../segmentation/Unet_rand_RGB/Unet_rand_rgb" 
 # is_gpu = False 
-# input_channels = 3 
-# img_size = 256 
+# input_channels = 6
+# img_size = 8 
                     
-# context_layer_count = 2 
+# context_layer_count = 6
 # output_channels = 1
+# net = ContextModel(input_channels, context_layer_count, output_channels)
+# net.init_weights_to_identity()
+
+# x = torch.randn(1, input_channels, img_size, img_size)
+# y = x
+# for n, l in net.named_children():
+#     if n != "final_conv":
+#         y = l(y)
+
+# print(torch.norm((x-y)))
+# x_sub = x[0, 0, 100:110, 100:110]
+# y_sub = y[0, 0, 100:110, 100:110]
 
 # mod = FrontEnd_ContextModel(front_end_type, path_to_front_end_weights, is_gpu, 
 #         input_channels, img_size, context_layer_count, output_channels)
