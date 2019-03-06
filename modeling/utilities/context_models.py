@@ -81,7 +81,7 @@ class FrontEnd_ContextModel(nn.Module):
 
         self._init_context_weights()
 
-    def _init_context_weights():
+    def _init_context_weights(self):
         self.Context_model.init_weights_to_identity()
 
     def forward(self, x):
