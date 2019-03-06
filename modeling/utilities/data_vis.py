@@ -21,26 +21,28 @@ import sys
 sys.path.append('../')
 
 
-def concat_horizontal(pic_list):
+def concat_horizontal(pic_list, border=0):
     '''
     Given a list of pics, concatenates them side-by-side
     '''
+
+    num_imgs = len(pic_list)
 
     pic_mode = pic_list[0].mode 
 
     widths, heights = zip(*(i.size for i in pic_list))
     
-    total_width = sum(widths)
+    total_width = sum(widths) + (num_imgs-1)*border
     height = heights[0]
 
-    new_img = Image.new(pic_mode, (total_width,height))
+    new_img = Image.new(pic_mode, (total_width,height), color='white')
 
     x_offset = 0
     for pic in pic_list:
         w, h = pic.size
         assert h == height 
         new_img.paste(pic, (x_offset,0))
-        x_offset += w 
+        x_offset += (w + border)
 
     return new_img 
 

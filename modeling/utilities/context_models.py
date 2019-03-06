@@ -17,6 +17,7 @@ import json
 
 sys.path.append("../")
 from segmentation.Unet_rand_RGB import Unet_rand_rgb_model as Unet 
+from segmentation.dil_net0 import dil_net as dilation_vgg
 import test_eval 
 
 def identity_weights(layer):
@@ -70,14 +71,16 @@ class FrontEnd_ContextModel(nn.Module):
         # Initialize the front-end model and load the weights
         if front_end_type == "Unet":
             self.FE_model = Unet.Unet(input_channels, img_size, include_final_conv=False)
+            context_channels = 64
         elif front_end_type == "vgg_orig":
-            self.FE_model = models.vgg16(pretrained=False)
+            self.FE_model = dilation_vgg.FrontEnd(input_channels, img_size, classify=False)
+            context_channels = 512
         else:
             print("Mispecified front-end model")
 
         if self.load_weights:
             self.FE_model = test_eval.load_weights(self.FE_model, self.path_to_front_end_weights, self.is_gpu)
-        self.Context_model = ContextModel(64, self.context_layer_count, self.output_channels, self.include_activ)
+        self.Context_model = ContextModel(context_channels, self.context_layer_count, self.output_channels, self.include_activ)
 
         self._init_context_weights()
 

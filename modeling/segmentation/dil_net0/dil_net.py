@@ -62,9 +62,9 @@ class FrontEnd(nn.Module):
         self.conv5b = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, dilation=4, padding=4)
         self.conv5c = nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, dilation=4, padding=4)
 
-        # 1x1 convolutional layer for classification
-        if self.classify:
-        	self.conv_final = nn.Conv2d(in_channels=512, out_channels=1, kernel_size=1)
+        # 1x1 convolutional layer for classification - always include this for standardization of
+        #     loading weights but don't include in forward pass if self.classify == False
+        self.conv_final = nn.Conv2d(in_channels=512, out_channels=1, kernel_size=1)
 
         # CONVERTED CONV BLOCK (6):
         # max pool -- REPLACED WITH DILATIONS
@@ -92,8 +92,8 @@ class FrontEnd(nn.Module):
 
     	# If our current model contains the conv_final then we want to not set that
     	param_list = list(self.parameters())
-    	if self.classify:
-    		assert len(param_list) - 2 == len(vgg_feature_weights)
+    	if self.classify:   # Changed so that always include the last layer, just exclude from forward pass
+    		assert len(param_list)  == len(vgg_feature_weights)
     	else:
     		assert len(param_list) == len(vgg_feature_weights)
 

@@ -51,9 +51,17 @@ def load_weights(raw_net, model_name, is_gpu):
     return raw_net 
 
 
-def plot_training_dict(model_name):
+def plot_training_dict(model_name, dict_type="epoch"):
+    assert dict_type in ["batch", "epoch"]
 
-    json_data = open(os.path.join(model_name, "training_hist.json")).read()
+    if dict_type == "epoch":
+        l = "Epoch avg"
+        history_file = "training_hist.json"
+    else:
+        l = "Batch"
+        history_file = "batch_hist.json"
+
+    json_data = open(os.path.join(model_name, history_file)).read()
     training_dict = json.loads(json_data)
 
     epoch_list = range(1, len(training_dict['train']['loss'])+1)
@@ -61,25 +69,25 @@ def plot_training_dict(model_name):
     plt.plot(epoch_list, training_dict['train']['loss'], label="Training phase")
     plt.plot(epoch_list, training_dict['val']['loss'], label="Validation phase")
     plt.legend()
-    plt.title("Epoch avg mean-squared-error")
+    plt.title("{} mean-squared-error".format(l))
     plt.ylim(0,1)
-    plt.savefig('Loss.png')
+    plt.savefig('{} Loss.png'.format(dict_type))
 
     plt.clf()
     plt.plot(epoch_list, training_dict['train']['acc'], label="Training phase")
     plt.plot(epoch_list, training_dict['val']['acc'], label="Validation phase")
     plt.legend()
-    plt.title("Epoch pixel-level prediction accuracy")
+    plt.title("{} pixel-level prediction accuracy".format(l))
     plt.ylim(0,1)
-    plt.savefig('Acc.png')
+    plt.savefig('{} Acc.png'.format(dict_type))
         
     plt.clf()
     plt.plot(epoch_list, training_dict['train']['IoU'], label="Training phase")
     plt.plot(epoch_list, training_dict['val']['IoU'], label="Validation phase")
     plt.legend()
-    plt.title("Epoch intersection-over-union score")
+    plt.title("{} intersection-over-union score".format(l))
     plt.ylim(0,1)
-    plt.savefig('IoU.png')
+    plt.savefig('{} IoU.png'.format(dict_type))
 
 
 def make_pred_map_classification(test_img, net, pic_size, step_size=None):

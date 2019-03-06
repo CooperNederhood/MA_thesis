@@ -14,6 +14,16 @@ import matplotlib.pyplot as plt
 from PIL import Image
 #import Unet_rand_rgb_model as model 
 
+def make_alpha(under_img, mask):
+
+	black_img = Image.new('RGB', under_img.size)
+	mask = mask.convert("L")
+
+	compos = Image.composite(under_img, black_img, mask)
+
+	return compos 
+
+
 def RF_once(net, img):
     '''
     Given an input image and a network, calculates the 
@@ -24,8 +34,9 @@ def RF_once(net, img):
     img_size = img.shape[-1]
 
     out = net(img)
+    out_size = out.shape[-1]
     grad_input = torch.zeros_like(out)
-    grad_input[0,0,int(img_size/2), int(img_size/2)] = 1
+    grad_input[0,0,int(out_size/2), int(out_size/2)] = 1
 
     out.backward(grad_input)
 
@@ -68,18 +79,37 @@ def output_ERF_analysis(net, img_iters, img_size,
     test_output = test_RF(net, img_iters, img_size, channels)    
 
     mean_output = test_output.mean(dim=0).squeeze(0)
-    
-    plt.clf()
-    x_plot = plt.imshow(mean_output, cmap="binary_r", interpolation='nearest')
-    plt.axis('off')
-    plt.savefig(os.path.join(save_to_path, "ERF_full_{}.png".format(model_name)), bbox_inches='tight')
-    
-    plt.clf()
+
+    if len(mean_output.shape) == 3:
+        print("Working on 3D VGG output")
+        mean_output = mean_output.permute(1,2,0)
+
+    print(mean_output.shape)
+
+    #mean_output.squeeze(0)
+
+    # Use PIL rather than pyplot
+    full_erf_array = mean_output.numpy()
+    full_erf_img = Image.fromarray(full_erf_array).convert('RGB')
+    full_erf_img.save(os.path.join(save_to_path, "new_ERF_full_{}.png".format(model_name)))
+
     top_left, bot_right = get_bounding_box(mean_output, zero_floor=1e-8)
     theor_rf = mean_output[top_left[0]:bot_right[0], top_left[1]:bot_right[1]]
-    x_plot = plt.imshow(theor_rf, cmap="binary_r", interpolation='nearest')
-    plt.axis('off')
-    plt.savefig(os.path.join(save_to_path, "ERF_zoom_{}.png".format(model_name)), bbox_inches='tight')
+    theor_rf_array = theor_rf.numpy()
+    theor_rf_array = Image.fromarray(theor_rf_array).convert('RGB')
+    theor_rf_array.save(os.path.join(save_to_path, "new_ERF_zoom_{}.png".format(model_name)))
+    
+    # plt.clf()
+    # x_plot = plt.imshow(mean_output, cmap="binary_r", interpolation='nearest')
+    # plt.axis('off')
+    # plt.savefig(os.path.join(save_to_path, "ERF_full_{}.png".format(model_name)), bbox_inches='tight')
+    
+    # plt.clf()
+    # top_left, bot_right = get_bounding_box(mean_output, zero_floor=1e-8)
+    # theor_rf = mean_output[top_left[0]:bot_right[0], top_left[1]:bot_right[1]]
+    # x_plot = plt.imshow(theor_rf, cmap="binary_r", interpolation='nearest')
+    # plt.axis('off')
+    # plt.savefig(os.path.join(save_to_path, "ERF_zoom_{}.png".format(model_name)), bbox_inches='tight')
 
 
 
