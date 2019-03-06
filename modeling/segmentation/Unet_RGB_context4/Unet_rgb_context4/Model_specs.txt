@@ -1,0 +1,65 @@
+2019-03-05 20:39:09.241571
+**************************************************
+MODEL NOTES:Front-end model is a pretrained vanilla U-Net model, RGB
+Context model has 4 layers
+
+
+**************************************************
+MODEL STRUCTURE:FrontEnd_ContextModel(
+  (FE_model): Unet(
+    (conv1a): Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (BN1a): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (conv1b): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (BN1b): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (conv2a): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (BN2a): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (conv2b): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (BN2b): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (conv3a): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (BN3a): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (conv3b): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (BN3b): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (conv4a): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (BN4a): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (conv4b): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (BN4b): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (bot_conv1a): Conv2d(512, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (bot_BNa): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (bot_conv1b): Conv2d(1024, 1024, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (bot_BNb): BatchNorm2d(1024, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (tconv1): ConvTranspose2d(1024, 512, kernel_size=(2, 2), stride=(2, 2))
+    (up_conv1a): Conv2d(1024, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (up_BN1a): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (up_conv1b): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (up_BN1b): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (tconv2): ConvTranspose2d(512, 256, kernel_size=(2, 2), stride=(2, 2))
+    (up_conv2a): Conv2d(512, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (up_BN2a): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (up_conv2b): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (up_BN2b): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (tconv3): ConvTranspose2d(256, 128, kernel_size=(2, 2), stride=(2, 2))
+    (up_conv3a): Conv2d(256, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (up_BN3a): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (up_conv3b): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (up_BN3b): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (tconv4): ConvTranspose2d(128, 64, kernel_size=(2, 2), stride=(2, 2))
+    (up_conv4a): Conv2d(128, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (up_BN4a): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (up_conv4b): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (up_BN4b): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+    (final_conv): Conv2d(64, 1, kernel_size=(1, 1), stride=(1, 1))
+  )
+  (Context_model): ContextModel(
+    (context1): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (context2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+    (context3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
+    (context4): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+    (final_conv): Conv2d(64, 1, kernel_size=(1, 1), stride=(1, 1))
+  )
+)
+
+PARAMETER COUNT BY LAYER:
+Layer FE_model has 31043521 parameters
+Layer Context_model has 147777 parameters
+
+Model has 31191298 total parameters
