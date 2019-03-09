@@ -46,7 +46,7 @@ def do_in_sample_tests(net, THESIS_ROOT):
             img = Image.open(os.path.join(IN_SAMPLE_ROOT, t, f))
 
             array = transforms.ToTensor()(img)
-            pred_img, pred_cat = make_pred_map_segmentation(array, net, img_size, img_size)   
+            pred_img, pred_cat = make_pred_map_segmentation(array, net, pic_size=256)   
             pred_img.save(os.path.join("in_sample_test", t, "pct", f))    
             pred_cat.save(os.path.join("in_sample_test", t, "binary", f))    
 
