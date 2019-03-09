@@ -23,6 +23,34 @@ sys.path.append('../')
 
 plt.style.use('ggplot')
 
+def do_in_sample_tests(net, THESIS_ROOT):
+    '''
+    Evaluate the model over the in-sample images, both slum 
+    and non-slum
+    '''
+    IN_SAMPLE_ROOT = os.path.join(THESIS_ROOT, "data", "descartes", "RGB", "min_cloud")
+
+    # Do in-sample evaluations on slum and not_slums 
+    if not os.path.isdir("in_sample_test"):
+        os.mkdir("in_sample_test")
+    for t in ["slums", "not_slums"]:
+        if not os.path.isdir(os.path.join("in_sample_test", t)):
+            os.mkdir(os.path.join("in_sample_test", t))
+
+        for s in ["pct", "binary"]:
+            if not os.path.isdir(os.path.join("in_sample_test", t, s)):
+                os.mkdir(os.path.join("in_sample_test", t, s))
+
+        files = os.listdir(os.path.join(IN_SAMPLE_ROOT, t))
+        for f in files:
+            img = Image.open(os.path.join(IN_SAMPLE_ROOT, t, f))
+
+            array = transforms.ToTensor()(img)
+            pred_img, pred_cat = test_eval.make_pred_map_segmentation(array, net, img_size, img_size)   
+            pred_img.save(os.path.join("in_sample_test", t, "pct", f))    
+            pred_cat.save(os.path.join("in_sample_test", t, "binary", f))    
+
+
 def inter_over_union(pred, target):
 
     log_or = torch.max(pred, target)
@@ -34,6 +62,7 @@ def inter_over_union(pred, target):
         rv = log_and.sum().item() / log_or.sum().item()
 
     return rv
+
 
 def load_weights(raw_net, model_name, is_gpu):
     '''
