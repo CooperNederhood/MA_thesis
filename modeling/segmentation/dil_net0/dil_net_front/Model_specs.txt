@@ -1,7 +1,7 @@
 2019-03-04 22:37:29.523616
 **************************************************
-MODEL NOTES:Full U-Net style model, with random weight init. RGB images
-Smaller batch sizes of 4
+MODEL NOTES:Load weights from VGG-16 and train only on 
+the final 1x1 layer, which was added to do classification
 
 
 **************************************************
