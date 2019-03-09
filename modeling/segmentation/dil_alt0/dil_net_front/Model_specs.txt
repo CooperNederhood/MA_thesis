@@ -1,0 +1,41 @@
+2019-03-06 21:18:44.005747
+**************************************************
+MODEL NOTES:This is an exact copy of the corresponding dil_net model.
+We simply change the VGG weights st they are trainable
+
+
+**************************************************
+MODEL STRUCTURE:FrontEnd(
+  (conv1a): Conv2d(3, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  (conv1b): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  (conv2a): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  (conv2b): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  (conv3a): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  (conv3b): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  (conv3c): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+  (conv4a): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
+  (conv4b): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
+  (conv4c): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
+  (conv5a): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+  (conv5b): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+  (conv5c): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+  (conv_final): Conv2d(512, 1, kernel_size=(1, 1), stride=(1, 1))
+)
+
+PARAMETER COUNT BY LAYER:
+Layer conv1a has 1792 parameters
+Layer conv1b has 36928 parameters
+Layer conv2a has 73856 parameters
+Layer conv2b has 147584 parameters
+Layer conv3a has 295168 parameters
+Layer conv3b has 590080 parameters
+Layer conv3c has 590080 parameters
+Layer conv4a has 1180160 parameters
+Layer conv4b has 2359808 parameters
+Layer conv4c has 2359808 parameters
+Layer conv5a has 2359808 parameters
+Layer conv5b has 2359808 parameters
+Layer conv5c has 2359808 parameters
+Layer conv_final has 513 parameters
+
+Model has 14715201 total parameters
