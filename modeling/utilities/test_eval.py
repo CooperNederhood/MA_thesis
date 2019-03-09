@@ -30,6 +30,8 @@ def do_in_sample_tests(net, THESIS_ROOT):
     '''
     IN_SAMPLE_ROOT = os.path.join(THESIS_ROOT, "data", "descartes", "RGB", "min_cloud")
 
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
     # Do in-sample evaluations on slum and not_slums 
     if not os.path.isdir("in_sample_test"):
         os.mkdir("in_sample_test")
@@ -46,6 +48,8 @@ def do_in_sample_tests(net, THESIS_ROOT):
             img = Image.open(os.path.join(IN_SAMPLE_ROOT, t, f))
 
             array = transforms.ToTensor()(img)
+            array = array.to(device)
+
             pred_img, pred_cat = make_pred_map_segmentation(array, net, pic_size=256)   
             pred_img.save(os.path.join("in_sample_test", t, "pct", f))    
             pred_cat.save(os.path.join("in_sample_test", t, "binary", f))    
