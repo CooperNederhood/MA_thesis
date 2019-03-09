@@ -286,8 +286,8 @@ def make_pred_map_segmentation(test_img, net, pic_size, step_size=None, tile=Fal
             pred_mask_cat = torch.round(pred_mask)
             assert pred_mask_cat.shape == pred_mask.shape 
 
-    pred_img = Image.fromarray(pred_mask.numpy()*255).convert("RGB")
-    pred_img_cat = Image.fromarray(pred_mask_cat.numpy()*255).convert("RGB")
+    pred_img = Image.fromarray(pred_mask.cpu().numpy()*255).convert("RGB")
+    pred_img_cat = Image.fromarray(pred_mask_cat.cpu().numpy()*255).convert("RGB")
     return pred_img, pred_img_cat
 
 def plot_encoder_pass_layers(net, image, thumbnail_size=None):
