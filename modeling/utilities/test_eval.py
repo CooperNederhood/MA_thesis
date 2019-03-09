@@ -64,9 +64,17 @@ def plot_training_dict(model_name, dict_type="epoch"):
     json_data = open(os.path.join(model_name, history_file)).read()
     training_dict = json.loads(json_data)
 
-    epoch_list = range(1, len(training_dict['train']['loss'])+1)
+    if dict_type == "batch":
+        smooth = 10
+        training_dict['val']['loss'] = np.convolve(training_dict['val']['loss'], np.ones(smooth)/smooth)
+        training_dict['val']['acc'] = np.convolve(training_dict['val']['acc'], np.ones(smooth)/smooth)
+        training_dict['val']['IoU'] = np.convolve(training_dict['val']['IoU'], np.ones(smooth)/smooth)
 
-    plt.plot(epoch_list, training_dict['train']['loss'], label="Training phase")
+    epoch_list = range(1, len(training_dict['val']['loss'])+1)
+
+    plt.clf()
+    if dict_type == "epoch":
+        plt.plot(epoch_list, training_dict['train']['loss'], label="Training phase")
     plt.plot(epoch_list, training_dict['val']['loss'], label="Validation phase")
     plt.legend()
     plt.title("{} mean-squared-error".format(l))
@@ -74,7 +82,8 @@ def plot_training_dict(model_name, dict_type="epoch"):
     plt.savefig('{} Loss.png'.format(dict_type))
 
     plt.clf()
-    plt.plot(epoch_list, training_dict['train']['acc'], label="Training phase")
+    if dict_type == "epoch":
+        plt.plot(epoch_list, training_dict['train']['acc'], label="Training phase")
     plt.plot(epoch_list, training_dict['val']['acc'], label="Validation phase")
     plt.legend()
     plt.title("{} pixel-level prediction accuracy".format(l))
@@ -82,7 +91,8 @@ def plot_training_dict(model_name, dict_type="epoch"):
     plt.savefig('{} Acc.png'.format(dict_type))
         
     plt.clf()
-    plt.plot(epoch_list, training_dict['train']['IoU'], label="Training phase")
+    if dict_type == "epoch":
+        plt.plot(epoch_list, training_dict['train']['IoU'], label="Training phase")
     plt.plot(epoch_list, training_dict['val']['IoU'], label="Validation phase")
     plt.legend()
     plt.title("{} intersection-over-union score".format(l))
@@ -172,13 +182,14 @@ def calc_buffer_needed(test_img, pic_size, step_size):
 
 
 
-def make_pred_map_segmentation(test_img, net, pic_size, step_size=None):
+def make_pred_map_segmentation(test_img, net, pic_size, step_size=None, tile=False):
     '''
     Inputs:
         test_img: (np array) of image we're evaluating on
         net: (pytorch network)
         pic_size: (int) dimensions of thumnails to extract and pass into net
         step_size: (int) step size between pics
+        tile: (bool) of whether to break image into tiles
     '''
 
     if step_size is None:
@@ -197,36 +208,54 @@ def make_pred_map_segmentation(test_img, net, pic_size, step_size=None):
 
     # Putting model in eval mode sets layers like dropout to prediction
     # Wrapping in no_grad() lets us not record gradient
-    net.eval()
-    with torch.no_grad():
-        while i < max_i:
-            while j < max_j:
-                sub_pic = test_img[:, i-pic_size:i, j-pic_size:j] 
-                sub_pic = sub_pic.unsqueeze(0)
-                
-                # Should get 4D mask back, squeeze the batch and channel dimensions
-                pred_mask = net(sub_pic)
-                assert pred_mask.dim() == 4
+    if tile:
+        net.eval()
+        with torch.no_grad():
+            while i < max_i:
+                while j < max_j:
+                    sub_pic = test_img[:, i-pic_size:i, j-pic_size:j] 
+                    sub_pic = sub_pic.unsqueeze(0)
+                    
+                    # Should get 4D mask back, squeeze the batch and channel dimensions
+                    pred_mask = net(sub_pic)
+                    assert pred_mask.dim() == 4
 
-                assert pred_mask.min().item() > 0 and pred_mask.max().item() < 1
-                pred_mask = pred_mask.squeeze(dim=0).squeeze(dim=0)
-                assert pred_mask.dim() == 2
+                    assert pred_mask.min().item() > 0 and pred_mask.max().item() < 1
+                    pred_mask = pred_mask.squeeze(dim=0).squeeze(dim=0)
+                    assert pred_mask.dim() == 2
 
-                # Make classification mask
-                pred_mask_cat = torch.round(pred_mask)
-                assert pred_mask_cat.shape == pred_mask.shape 
+                    # Make classification mask
+                    pred_mask_cat = torch.round(pred_mask)
+                    assert pred_mask_cat.shape == pred_mask.shape 
 
-                # Update the prediction matrix accordingly
-                pred_map_cat[i-pic_size:i, j-pic_size:j] += pred_mask_cat
-                pred_map[i-pic_size:i, j-pic_size:j] += pred_mask
+                    # Update the prediction matrix accordingly
+                    pred_map_cat[i-pic_size:i, j-pic_size:j] += pred_mask_cat
+                    pred_map[i-pic_size:i, j-pic_size:j] += pred_mask
 
-                pic_count += 1
-                j += step_size
-            j = pic_size
-            i += step_size
+                    pic_count += 1
+                    j += step_size
+                j = pic_size
+                i += step_size
+    else:
+        net.eval()
+        with torch.no_grad():
+            test_img.unsqueeze_(0)
+            assert test_img.dim() == 4
+            
+            pred_mask = net(test_img)
+            assert pred_mask.dim() == 4
+            assert pred_mask.min().item() > 0 and pred_mask.max().item() < 1
 
-    pred_img = Image.fromarray(pred_map.numpy()*255).convert("RGB")
-    return pred_img, pic_count
+            pred_mask.squeeze_(0).squeeze_(0)
+            assert pred_mask.dim() == 2
+
+            # Make classification map
+            pred_mask_cat = torch.round(pred_mask)
+            assert pred_mask_cat.shape == pred_mask.shape 
+
+    pred_img = Image.fromarray(pred_mask.numpy()*255).convert("RGB")
+    pred_img_cat = Image.fromarray(pred_mask_cat.numpy()*255).convert("RGB")
+    return pred_img, pred_img_cat
 
 def plot_encoder_pass_layers(net, image, thumbnail_size=None):
     '''

@@ -19,9 +19,11 @@ from utilities import cnn_utils, transform_utils, test_eval
 
 
 MODEL_NAME = "dil_net_front"
-MODEL_DETAILS = '''Full U-Net style model, with random weight init. RGB images
-Smaller batch sizes of 4
+MODEL_DETAILS = '''Load weights from VGG-16 and train only on 
+the final 1x1 layer, which was added to do classification
 '''
+
+VGG_TRAIN = False 
 
 import dil_net as model_def
 
@@ -175,7 +177,7 @@ common_transforms = [transform_utils.RandomHorizontalFlip(0.5),
 
 # Define network
 net = model_def.FrontEnd(input_channels, img_size, PADDING, classify=True)
-net.load_vgg_weights(False)
+net.load_vgg_weights(VGG_TRAIN)
 
 # Define dataloaders
 train_root = os.path.join(data_root, "train")
