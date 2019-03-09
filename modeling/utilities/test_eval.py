@@ -265,7 +265,9 @@ def make_pred_map_segmentation(test_img, net, pic_size, step_size=None, tile=Fal
                     assert pred_mask_cat.shape == pred_mask.shape 
 
                     # Update the prediction matrix accordingly
-                    pred_map_cat[i-pic_size:i, j-pic_size:j] += pred_mask_cat
+                    print("pred_map shape = ", pred_map.shape)
+                    print("pred_mask shape = ", pred_mask.shape)
+                    
                     pred_map[i-pic_size:i, j-pic_size:j] += pred_mask
 
                     pic_count += 1
