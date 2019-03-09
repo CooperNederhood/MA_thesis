@@ -69,10 +69,19 @@ class FrontEnd_ContextModel(nn.Module):
         self.my_device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
         # Initialize the front-end model and load the weights
+        # Note, the 'vgg_orig' and 'vgg_tuned' have the same Front End model, they differ
+        #     in where they initialize the weights from
         if front_end_type == "Unet":
             self.FE_model = Unet.Unet(input_channels, img_size, include_final_conv=False)
             context_channels = 64
+
         elif front_end_type == "vgg_orig":
+            # get weights from dil_net0
+            self.FE_model = dilation_vgg.FrontEnd(input_channels, img_size, classify=False)
+            context_channels = 512
+
+        elif front_end_type == "vgg_tuned":
+            # get weights from dil_alt0
             self.FE_model = dilation_vgg.FrontEnd(input_channels, img_size, classify=False)
             context_channels = 512
         else:
