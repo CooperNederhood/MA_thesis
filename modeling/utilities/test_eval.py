@@ -239,6 +239,9 @@ def make_pred_map_segmentation(test_img, net, pic_size, step_size=None, tile=Fal
     _, max_i, max_j = test_img.shape
     pic_count = 0
 
+    if max_i * max_j > 640000:
+        tile = True 
+
     # Putting model in eval mode sets layers like dropout to prediction
     # Wrapping in no_grad() lets us not record gradient
     if tile:
