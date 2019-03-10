@@ -14,20 +14,34 @@ from PIL import Image
 import sys
 import json 
 
+sys.path.append('../')
 sys.path.append('../../')
-from utilities import cnn_utils, transform_utils, test_eval
+sys.path.append('../../utilities')
+from utilities import cnn_utils, transform_utils, test_eval, context_models
 
 
-MODEL_NAME = "dil_net_front"
-MODEL_DETAILS = '''Load weights from VGG-16 and train only on 
-the final 1x1 layer, which was added to do classification
+MODEL_NAME = "dil_net"
+MODEL_DETAILS = '''Load weights from VGG-16 convolutional base.
+Then, add a context model on top of that. Fix the VGG-16 weights.
+Context model has 4 layers
 '''
 
 VGG_TRAIN = False 
 
-import dil_net as model_def
+from dil_net0 import dil_net as model_def
 
-EPOCH_COUNT = 5
+# Check whether GPU is enabled
+torch.cuda.is_available()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print(device)
+
+FRONT_END_TYPE = "vgg_orig" 
+PATH_TO_FRONT_END_WEIGHTS = "../dil_net0/dil_net_front" 
+IS_GPU = device == "cuda:0" 
+CONTEXT_LAYER_COUNT = 4
+OUTPUT_CHANNELS = 1
+
+EPOCH_COUNT = 5 
 BATCH_SIZE = 4
 img_size = 256
 input_channels = 3
@@ -176,8 +190,10 @@ common_transforms = [transform_utils.RandomHorizontalFlip(0.5),
 #img_transforms = [transforms.ColorJitter()]
 
 # Define network
-net = model_def.FrontEnd(input_channels, img_size, PADDING, classify=True)
-net.load_vgg_weights(VGG_TRAIN)
+net = context_models.FrontEnd_ContextModel(FRONT_END_TYPE, PATH_TO_FRONT_END_WEIGHTS, IS_GPU, 
+        input_channels, img_size, CONTEXT_LAYER_COUNT, OUTPUT_CHANNELS)
+net.fix_front_end_weights()
+#net.load_vgg_weights(VGG_TRAIN)
 
 # Define dataloaders
 train_root = os.path.join(data_root, "train")

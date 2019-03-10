@@ -96,6 +96,10 @@ class FrontEnd_ContextModel(nn.Module):
     def _init_context_weights(self):
         self.Context_model.init_weights_to_identity()
 
+    def fix_front_end_weights(self):
+        for p in self.FE_model.parameters():
+            p.requires_grad_(False)
+
     def forward(self, x):
 
         x = self.FE_model(x)
