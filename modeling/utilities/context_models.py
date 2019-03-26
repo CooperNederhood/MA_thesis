@@ -161,31 +161,4 @@ class ContextModel(nn.Module):
 
         return x 
 
-# front_end_type = "Unet" 
-# path_to_front_end_weights = "../segmentation/Unet_rand_RGB/Unet_rand_rgb" 
-# is_gpu = False 
-# input_channels = 6
-# img_size = 8 
-                    
-# context_layer_count = 6
-# output_channels = 1
-# net = ContextModel(input_channels, context_layer_count, output_channels)
-# net.init_weights_to_identity()
-
-# x = torch.randn(1, input_channels, img_size, img_size)
-# y = x
-# for n, l in net.named_children():
-#     if n != "final_conv":
-#         y = l(y)
-
-# print(torch.norm((x-y)))
-# x_sub = x[0, 0, 100:110, 100:110]
-# y_sub = y[0, 0, 100:110, 100:110]
-
-# mod = FrontEnd_ContextModel(front_end_type, path_to_front_end_weights, is_gpu, 
-#         input_channels, img_size, context_layer_count, output_channels)
-
-# x = torch.randn(1, 3, img_size, img_size)
-# y = mod(x)
-
 

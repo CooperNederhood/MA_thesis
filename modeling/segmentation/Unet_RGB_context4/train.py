@@ -182,6 +182,7 @@ common_transforms = [transform_utils.RandomHorizontalFlip(0.5),
 # Define network
 net = context_models.FrontEnd_ContextModel(FRONT_END_TYPE, PATH_TO_FRONT_END_WEIGHTS, IS_GPU, 
         input_channels, img_size, CONTEXT_LAYER_COUNT, OUTPUT_CHANNELS)
+net.fix_front_end_weights()
 
 # Define dataloaders
 train_root = os.path.join(data_root, "train")
