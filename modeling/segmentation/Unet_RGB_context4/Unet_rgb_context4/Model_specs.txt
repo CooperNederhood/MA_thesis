@@ -1,4 +1,4 @@
-2019-03-05 20:39:09.241571
+2019-03-25 22:42:21.225768
 **************************************************
 MODEL NOTES:Front-end model is a pretrained vanilla U-Net model, RGB
 Context model has 4 layers
@@ -54,12 +54,13 @@ MODEL STRUCTURE:FrontEnd_ContextModel(
     (context2): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
     (context3): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(2, 2), dilation=(2, 2))
     (context4): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(4, 4), dilation=(4, 4))
+    (prefinal_conv): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
     (final_conv): Conv2d(64, 1, kernel_size=(1, 1), stride=(1, 1))
   )
 )
 
 PARAMETER COUNT BY LAYER:
 Layer FE_model has 31043521 parameters
-Layer Context_model has 147777 parameters
+Layer Context_model has 184705 parameters
 
-Model has 31191298 total parameters
+Model has 31228226 total parameters
