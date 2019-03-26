@@ -23,7 +23,7 @@ sys.path.append('../')
 
 plt.style.use('ggplot')
 
-def do_in_sample_tests(net, THESIS_ROOT):
+def do_in_sample_tests(net, THESIS_ROOT, tile=False):
     '''
     Evaluate the model over the in-sample images, both slum 
     and non-slum
@@ -45,12 +45,14 @@ def do_in_sample_tests(net, THESIS_ROOT):
 
         files = os.listdir(os.path.join(IN_SAMPLE_ROOT, t))
         for f in files:
+            print("Processing file: ", f)
             img = Image.open(os.path.join(IN_SAMPLE_ROOT, t, f))
 
             array = transforms.ToTensor()(img)
             array = array.to(device)
 
-            pred_img, pred_cat = make_pred_map_segmentation(array, net, pic_size=256)   
+            pred_img, pred_cat = make_pred_map_segmentation(array, net, pic_size=256, tile=tile)
+            print("Saving at: ", os.path.join("in_sample_test", t, "pct"))   
             pred_img.save(os.path.join("in_sample_test", t, "pct", f))    
             pred_cat.save(os.path.join("in_sample_test", t, "binary", f))    
 
@@ -195,20 +197,31 @@ def calc_buffer_needed(test_img, pic_size, step_size):
     resulting in a perfect fit
     '''
 
-    # Check that size gives a two dimensional size, without channels
-    assert len(test_img.size) == 2
+    # Check that size gives a 4 dimensional size
+    assert len(test_img.size()) == 4
 
     buffer_dict = {}
-    for i, img_size in enumerate(test_img.size):
+    for i, img_size in enumerate(test_img.size()[2:]):
         remainder = (img_size - pic_size) % step_size
         added_buffer = step_size - remainder
 
         assert (img_size + added_buffer - pic_size) % step_size == 0
 
-        if i==0:
-            buffer_dict['x'] = added_buffer
+        # Need to split to two sides
+        if added_buffer % 2 == 1:
+            added_buffer0 = (added_buffer-1)/2
+            added_buffer1 = (added_buffer-1)/2 + 1
         else:
-            buffer_dict['y'] = added_buffer
+            added_buffer0 = added_buffer/2
+            added_buffer1 = added_buffer/2
+
+        if i==0:
+            buffer_dict['L'] = int(added_buffer0)
+            buffer_dict['R'] = int(added_buffer1)
+
+        else:
+            buffer_dict['T'] = int(added_buffer0)
+            buffer_dict['B'] = int(added_buffer1)
 
     return buffer_dict  
 
@@ -228,6 +241,17 @@ def make_pred_map_segmentation(test_img, net, pic_size, step_size=None, tile=Fal
     if step_size is None:
         step_size = pic_size
 
+    if tile:
+        pass 
+        # NEW: add reflection padding to have no cut off edges
+        # test_img.unsqueeze_(0)
+        # print("Original dim = ", test_img.shape)
+        # pad = calc_buffer_needed(test_img, pic_size, step_size)
+        # padding_layer = nn.ReplicationPad2d((pad['T'], pad['B'], pad['L'], pad['R']))
+        # test_img = padding_layer(test_img)
+        # print("Padded dim = ", test_img.shape)
+        # test_img.squeeze_(0)
+
     # Output prediction map starts with array of zeros
     pred_map = torch.zeros(test_img.shape[1:3])
     pred_map_cat = torch.zeros(test_img.shape[1:3])
@@ -245,6 +269,7 @@ def make_pred_map_segmentation(test_img, net, pic_size, step_size=None, tile=Fal
     # Putting model in eval mode sets layers like dropout to prediction
     # Wrapping in no_grad() lets us not record gradient
     if tile:
+
         net.eval()
         with torch.no_grad():
             while i < max_i:
@@ -265,8 +290,7 @@ def make_pred_map_segmentation(test_img, net, pic_size, step_size=None, tile=Fal
                     assert pred_mask_cat.shape == pred_mask.shape 
 
                     # Update the prediction matrix accordingly
-                    print("pred_map shape = ", pred_map.shape)
-                    print("pred_mask shape = ", pred_mask.shape)
+                    print("\tAt {},{} of max {},{}".format(i,j,max_i, max_j))
                     
                     pred_map[i-pic_size:i, j-pic_size:j] += pred_mask
 
@@ -274,6 +298,9 @@ def make_pred_map_segmentation(test_img, net, pic_size, step_size=None, tile=Fal
                     j += step_size
                 j = pic_size
                 i += step_size
+            #pred_map = pred_map[pad['R']:-pad['L'], pad['B']:-pad['T']]
+            pred_map_cat = torch.round(pred_map)
+
     else:
         net.eval()
         with torch.no_grad():
@@ -291,8 +318,11 @@ def make_pred_map_segmentation(test_img, net, pic_size, step_size=None, tile=Fal
             pred_mask_cat = torch.round(pred_mask)
             assert pred_mask_cat.shape == pred_mask.shape 
 
-    pred_img = Image.fromarray(pred_mask.cpu().numpy()*255).convert("RGB")
-    pred_img_cat = Image.fromarray(pred_mask_cat.cpu().numpy()*255).convert("RGB")
+    #pred_img = Image.fromarray(pred_mask.cpu().numpy()).convert("RGB")
+    #pred_img_cat = Image.fromarray(pred_mask_cat.cpu().numpy()).convert("RGB")
+    pred_img = Image.fromarray(pred_map.cpu().numpy()*255).convert("RGB")
+    pred_img_cat = Image.fromarray(pred_map_cat.cpu().numpy()*255).convert("RGB")
+    print("Final shape = ", pred_map.shape)
     return pred_img, pred_img_cat
 
 def plot_encoder_pass_layers(net, image, thumbnail_size=None):

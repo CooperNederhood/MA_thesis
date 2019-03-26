@@ -132,6 +132,7 @@ class ContextModel(nn.Module):
         if self.depth >= 6:
             self.context6 = nn.Conv2d(self.c, self.c, kernel_size=3, padding=16, dilation=16)
 
+        self.prefinal_conv = nn.Conv2d(self.c, self.c, kernel_size=3, padding=1, dilation=1)
         self.final_conv = nn.Conv2d(self.c, self.output_channels, kernel_size=1)
 
     def init_weights_to_identity(self):

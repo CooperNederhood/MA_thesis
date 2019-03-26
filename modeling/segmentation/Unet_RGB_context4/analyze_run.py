@@ -50,25 +50,27 @@ net = context_models.FrontEnd_ContextModel(FRONT_END_TYPE, PATH_TO_FRONT_END_WEI
         input_channels, img_size, CONTEXT_LAYER_COUNT, OUTPUT_CHANNELS)
 net = test_eval.load_weights(net, MODEL_NAME, is_gpu=device=="cuda:0")
 
-# Do in-sample evaluations on slum and not_slums 
-if not os.path.isdir("in_sample_test"):
-    os.mkdir("in_sample_test")
-for t in ["slums", "not_slums"]:
-    if not os.path.isdir(os.path.join("in_sample_test", t)):
-        os.mkdir(os.path.join("in_sample_test", t))
+test_eval.do_in_sample_tests(net, "../../../", tile=True)
 
-    for s in ["pct", "binary"]:
-    	if not os.path.isdir(os.path.join("in_sample_test", t, s)):
-    		os.mkdir(os.path.join("in_sample_test", t, s))
-    #if not os.path.isdir(os.path.join("in_sample_test", t, ""))
+# # Do in-sample evaluations on slum and not_slums 
+# if not os.path.isdir("in_sample_test"):
+#     os.mkdir("in_sample_test")
+# for t in ["slums", "not_slums"]:
+#     if not os.path.isdir(os.path.join("in_sample_test", t)):
+#         os.mkdir(os.path.join("in_sample_test", t))
 
-    files = os.listdir(os.path.join(IN_SAMPLE_ROOT, t))
-    for f in files:
-        img = Image.open(os.path.join(IN_SAMPLE_ROOT, t, f))
+#     for s in ["pct", "binary"]:
+#     	if not os.path.isdir(os.path.join("in_sample_test", t, s)):
+#     		os.mkdir(os.path.join("in_sample_test", t, s))
+#     #if not os.path.isdir(os.path.join("in_sample_test", t, ""))
 
-        array = transforms.ToTensor()(img)
-        pred_img, pred_cat = test_eval.make_pred_map_segmentation(array, net, img_size, img_size)   
-        pred_img.save(os.path.join("in_sample_test", t, s, f))
+#     files = os.listdir(os.path.join(IN_SAMPLE_ROOT, t))
+#     for f in files:
+#         img = Image.open(os.path.join(IN_SAMPLE_ROOT, t, f))
+
+#         array = transforms.ToTensor()(img)
+#         pred_img, pred_cat = test_eval.make_pred_map_segmentation(array, net, img_size, img_size)   
+#         pred_img.save(os.path.join("in_sample_test", t, s, f))
 
 
 
