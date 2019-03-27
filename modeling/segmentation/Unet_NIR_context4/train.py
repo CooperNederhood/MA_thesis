@@ -39,7 +39,7 @@ IS_GPU = device == "cuda:0"
 CONTEXT_LAYER_COUNT = 4
 OUTPUT_CHANNELS = 1
 
-EPOCH_COUNT = 1 
+EPOCH_COUNT = 5
 BATCH_SIZE = 4
 img_size = 256
 input_channels = 4

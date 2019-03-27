@@ -26,7 +26,7 @@ Smaller batch sizes of 4
 
 import Unet_rand_RGB.Unet_rand_rgb_model as model_def
 
-EPOCH_COUNT = 1 
+EPOCH_COUNT = 5 
 BATCH_SIZE = 4
 img_size = 256
 input_channels = 4
