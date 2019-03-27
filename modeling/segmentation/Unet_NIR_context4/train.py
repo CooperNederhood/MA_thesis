@@ -17,7 +17,7 @@ import json
 sys.path.append('../../')
 sys.path.append('../')
 sys.path.append('../../utilities')
-from utilities import cnn_utils, transform_utils, test_eval
+from utilities import cnn_utils, transform_utils, test_eval, context_models
 
 
 MODEL_NAME = "Unet_rand_nir"
