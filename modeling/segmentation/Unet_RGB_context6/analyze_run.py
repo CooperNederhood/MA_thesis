@@ -48,6 +48,7 @@ test_eval.plot_training_dict(MODEL_NAME, "epoch")
 # Load the model weights
 net = context_models.FrontEnd_ContextModel(FRONT_END_TYPE, PATH_TO_FRONT_END_WEIGHTS, IS_GPU, 
         input_channels, img_size, CONTEXT_LAYER_COUNT, OUTPUT_CHANNELS)
+net.to(device)
 net = test_eval.load_weights(net, MODEL_NAME, is_gpu=device=="cuda:0")
 
 test_eval.do_in_sample_tests(net, "../../../", tile=True)
