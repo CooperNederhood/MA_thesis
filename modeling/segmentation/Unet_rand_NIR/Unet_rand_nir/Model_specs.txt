@@ -1,4 +1,4 @@
-2019-03-27 12:29:20.757262
+2019-03-27 17:31:26.238390
 **************************************************
 MODEL NOTES:Full U-Net style model, with random weight init. 4-band NIR images
 Smaller batch sizes of 4
