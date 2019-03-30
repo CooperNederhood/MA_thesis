@@ -1,4 +1,4 @@
-2019-03-27 14:42:03.798082
+2019-03-29 16:34:12.883375
 **************************************************
 MODEL NOTES:Front-end model is a pretrained NIR vanilla U-Net model, NIR
 Context model has 4 layers
