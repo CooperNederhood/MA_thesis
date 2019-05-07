@@ -11,7 +11,10 @@ from tensorflow.keras import layers, models, callbacks, losses
 import os 
 import matplotlib.pyplot as plt 
 import functools 
+
 tf.enable_eager_execution()
+
+print("GPU is available?: ", tf.test.is_gpu_available())
 
 ROOT = "../../"
 MODELING = os.path.join(ROOT, "modeling")
