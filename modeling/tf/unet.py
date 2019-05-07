@@ -12,7 +12,7 @@ import os
 import matplotlib.pyplot as plt 
 import functools 
 
-tf.enable_eager_execution()
+#tf.enable_eager_execution()
 
 print("GPU is available?: ", tf.test.is_gpu_available())
 
@@ -27,6 +27,7 @@ val_path = os.path.join(descartes, "val")
 # Parameters
 BATCH_SIZE = 8
 THREADS = 4
+EPOCHS = 1
 
 
 # Build the data pipeline
@@ -103,7 +104,6 @@ def _augment(img, mask, shift_range, flip_rate):
     img, mask = flip_img(img, mask, flip_rate)
 
     img = tf.to_float(img) * (1/255.) # rescale to 0-1
-    #mask = mask[:,:,:,0] # channel dimension is redundant
 
     return img, mask 
 
@@ -118,12 +118,13 @@ def make_dataset(data_path, shift_pct, flip_rate, batch_size, threads):
     augment_function = functools.partial(_augment, shift_range=shift_pct, flip_rate=flip_rate)
 
     dataset = tf.data.Dataset.from_tensor_slices((image_files, mask_files))
-    #dataset = dataset.shuffle(len(image_files))
+    dataset = dataset.shuffle(len(image_files))
+    dataset = dataset.repeat()
     dataset = dataset.map(_process_pathnames, num_parallel_calls = threads)
     dataset = dataset.map(augment_function, num_parallel_calls = threads)
     
-    dataset = dataset.repeat()
     dataset = dataset.batch(batch_size)
+    dataset = dataset.prefetch(1)
 
     return dataset
 
@@ -183,7 +184,7 @@ def decoder_block(input_tensor, concat_tensor, ftrs, is_batchnorm=True):
     return out 
 
 #f = 64
-f = 4
+f = 32
 
 inputs = layers.Input(shape=(256,256,3))
 
@@ -226,27 +227,22 @@ reduce_lr = callbacks.ReduceLROnPlateau(monitor='val_dice_loss', factor=0.2,
                         patience=2, min_lr=0.001)
 if not os.path.isdir("model"):
     os.mkdir("model")
-cp = callbacks.ModelCheckpoint(filepath="/model/weights.hdf5", monitor="val_dice_loss",
+
+cp = callbacks.ModelCheckpoint(filepath="weights.hdf5", monitor="val_dice_loss",
                         save_best_only=True, verbose=1)
 
 unet.compile(optimizer='adam', loss=bce_dice_loss, metrics=[dice_loss])
 
 unet.summary()
 
-l_name = "conv2d_116"
-m = models.Model(inputs=[inputs], outputs=[unet.get_layer(l_name).output])
-
-#steps_per_epoch=int(np.ceiling(len(train_image_files)/BATCH_SIZE)),
-#validation_steps_per_epoch=int(np.ceiling(len(val_image_files)/BATCH_SIZE))
-
 history = unet.fit(train_data, 
     epochs=EPOCHS, 
-    steps_per_epoch=5,
+    steps_per_epoch=int(np.ceil(len(train_image_files)/BATCH_SIZE)),
     validation_data=val_data,
-    validation_steps_per_epoch=2,
+    validation_steps=validation_steps_per_epoch=int(np.ceil(len(val_image_files)/BATCH_SIZE)),
     callbacks=[reduce_lr, cp])
 
-df_history = pd.DataFrame(history)
+df_history = pd.DataFrame(history.history)
 df_history.to_csv("model/train_history.csv")
 
 
