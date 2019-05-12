@@ -26,7 +26,7 @@ sys.path.append('../')
 
 plt.style.use('ggplot')
 
-def do_ROC_curve(net, val_dset_loader, thresholds, device):
+def do_ROC_curve(net, val_dset_loader, thresholds, device:):
     '''
     Do an ROC curve evaluation for the given model
     '''
@@ -59,6 +59,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
             output = net(images)
             output = output.view(-1)
             target = target.view(-1)
+            print("Max: ", output.max())
 
             # Do predictions based on each of our thresholds
             for t in thresholds:
@@ -73,7 +74,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
         print()
 
     # Save 
-    with open("confusion_matrices.p", 'w') as f:
+    with open("confusion_matrices.p", 'wb') as f:
 
         pickle.dump(conf_matrices, f)
 
