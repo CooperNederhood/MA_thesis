@@ -26,7 +26,7 @@ sys.path.append('../')
 
 plt.style.use('ggplot')
 
-def do_ROC_curve(net, val_dset_loader, thresholds):
+def do_ROC_curve(net, val_dset_loader, thresholds, device):
     '''
     Do an ROC curve evaluation for the given model
     '''

@@ -63,6 +63,6 @@ val_dset = model_def.SegmentationDataset(val_root, f_type="Numpy_array")
 val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
 
 thresholds = [0.0, 0.25, 0.5, 0.75, 1.0]
-test_eval.do_ROC_curve(net, val_dset_loader, thresholds)
+test_eval.do_ROC_curve(net, val_dset_loader, thresholds, device)
 
 
