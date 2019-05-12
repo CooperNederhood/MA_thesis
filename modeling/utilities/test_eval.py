@@ -16,6 +16,9 @@ import matplotlib.pyplot as plt
 import json 
 import datetime 
 
+from sklearn.metrics import confusion_matrix
+import pickle 
+
 # Import other module
 import sys 
 sys.path.append('../')
@@ -23,12 +26,69 @@ sys.path.append('../')
 
 plt.style.use('ggplot')
 
-def do_in_sample_tests(net, THESIS_ROOT, tile=False):
+def do_ROC_curve(net, val_dset_loader, thresholds):
+    '''
+    Do an ROC curve evaluation for the given model
+    '''
+
+    net.eval()
+
+    total_pixels = 0
+    total_slum = 0
+    running_conf_matrix = np.zeros((2, 2))
+
+    conf_matrices = {}
+    for t in thresholds:
+        conf_matrices[t] = running_conf_matrix.copy()
+
+    with torch.no_grad():
+        for i, data in enumerate(val_dset_loader):
+
+            images, target = data
+            img_size = target.shape[-1]
+            #assert img_size == 128
+
+            target = torch.tensor(target, dtype=torch.float32, device=device)
+            images = images.to(device)
+
+            batch_size = target.shape[0]
+            total_pixels += batch_size*img_size*img_size
+            total_slum += target.sum().item()
+            
+            # Forward pass -- reshape output to be like the target (has extra 1D dimension)
+            output = net(images)
+            output = output.view(-1)
+            target = target.view(-1)
+
+            # Do predictions based on each of our thresholds
+            for t in thresholds:
+                preds = output > t 
+                conf_matrices[t] += confusion_matrix(preds, target)
+
+    print("There are {} pixels and {} are slum\n".format(total_pixels, total_slum/total_pixels))
+
+    for t in thresholds:
+        print("Conf mat for threshold={}".format(t))
+        print(conf_matrices[t]/total_pixels)
+        print()
+
+    # Save 
+    with open("confusion_matrices.p", 'w') as f:
+
+        pickle.dump(conf_matrices, f)
+
+    print("\n\nDONE!")
+
+
+
+
+def do_in_sample_tests(net, THESIS_ROOT, tile=False, dtype="RGB"):
     '''
     Evaluate the model over the in-sample images, both slum 
     and non-slum
     '''
-    IN_SAMPLE_ROOT = os.path.join(THESIS_ROOT, "data", "descartes", "RGB", "min_cloud")
+    assert dtype in ["RGB", "Four_band"]
+    IN_SAMPLE_ROOT = os.path.join(THESIS_ROOT, "data", "descartes", dtype, "min_cloud")
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -46,15 +106,64 @@ def do_in_sample_tests(net, THESIS_ROOT, tile=False):
         files = os.listdir(os.path.join(IN_SAMPLE_ROOT, t))
         for f in files:
             print("Processing file: ", f)
-            img = Image.open(os.path.join(IN_SAMPLE_ROOT, t, f))
 
-            array = transforms.ToTensor()(img)
+            if dtype == "RGB":
+                img = Image.open(os.path.join(IN_SAMPLE_ROOT, t, f))
+                array = transforms.ToTensor()(img)
+            else:
+                assert dtype == "Four_band"
+                img = np.load(os.path.join(IN_SAMPLE_ROOT, t, f))
+                array = torch.from_numpy(img).type(torch.float32)
+                f = f.replace(".npy", ".png")
+
             array = array.to(device)
 
             pred_img, pred_cat = make_pred_map_segmentation(array, net, pic_size=256, tile=tile)
             print("Saving at: ", os.path.join("in_sample_test", t, "pct"))   
             pred_img.save(os.path.join("in_sample_test", t, "pct", f))    
             pred_cat.save(os.path.join("in_sample_test", t, "binary", f))    
+
+def do_out_sample_tests(net, THESIS_ROOT, tile=False, dtype="RGB"):
+    '''
+    Evaluate the model over the out-of-sample images
+    '''
+    assert dtype in ["RGB", "Four_band"]
+    IN_SAMPLE_ROOT = os.path.join(THESIS_ROOT, "data", "descartes", dtype, "min_cloud")
+
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    # Do out-of-sample evaluation
+    if not os.path.isdir("out_sample_test"):
+        os.mkdir("out_sample_test")
+
+    t = "aoi"
+
+    if not os.path.isdir(os.path.join("out_sample_test", t)):
+        os.mkdir(os.path.join("out_sample_test", t))
+
+    for s in ["pct", "binary"]:
+        if not os.path.isdir(os.path.join("out_sample_test", t, s)):
+            os.mkdir(os.path.join("out_sample_test", t, s))
+
+    files = os.listdir(os.path.join(IN_SAMPLE_ROOT, t))
+    for f in files:
+        print("Processing file: ", f)
+
+        if dtype == "RGB":
+            img = Image.open(os.path.join(IN_SAMPLE_ROOT, t, f))
+            array = transforms.ToTensor()(img)
+        else:
+            assert dtype == "Four_band"
+            img = np.load(os.path.join(IN_SAMPLE_ROOT, t, f))
+            array = torch.from_numpy(img).type(torch.float32)
+            f = f.replace(".npy", ".png")
+
+        array = array.to(device)
+
+        pred_img, pred_cat = make_pred_map_segmentation(array, net, pic_size=256, tile=tile)
+        print("Saving at: ", os.path.join("out_sample_test", t, "pct"))   
+        pred_img.save(os.path.join("out_sample_test", t, "pct", f))    
+        pred_cat.save(os.path.join("out_sample_test", t, "binary", f))    
 
 
 def inter_over_union(pred, target):
@@ -134,6 +243,32 @@ def plot_training_dict(model_name, dict_type="epoch"):
     plt.ylim(0,1)
     plt.savefig('{} IoU.png'.format(dict_type))
 
+    if dict_type == "epoch":
+        val_loss = np.min(training_dict['val']['loss'])
+        min_epoch = np.argmin(training_dict['val']['loss'])
+
+        val_IoU = training_dict['val']['IoU'][min_epoch]
+        val_acc = training_dict['val']['acc'][min_epoch]
+        mean_train_time = round(np.mean(training_dict['train']['time'])/60)
+
+        with open("perf_summary.csv", 'w') as f:
+            f.write(", Model Name\n")
+
+            f.write("Min loss, ")
+            f.write(str(val_loss))
+            f.write("\n")
+
+            f.write("IoU, ")
+            f.write(str(val_IoU))
+            f.write("\n")
+
+            f.write("Acc., ")
+            f.write(str(val_acc))
+            f.write("\n")
+
+            f.write("Avg train time, ")
+            f.write(str(mean_train_time))
+            f.write("\n")
 
 def make_pred_map_classification(test_img, net, pic_size, step_size=None):
     '''
