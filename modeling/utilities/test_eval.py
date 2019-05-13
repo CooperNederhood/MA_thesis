@@ -26,7 +26,7 @@ sys.path.append('../')
 
 plt.style.use('ggplot')
 
-def do_ROC_curve(net, val_dset_loader, thresholds, device:):
+def do_ROC_curve(net, val_dset_loader, thresholds, device):
     '''
     Do an ROC curve evaluation for the given model
     '''
@@ -52,13 +52,13 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device:):
             images = images.to(device)
 
             batch_size = target.shape[0]
-            total_pixels += batch_size*img_size*img_size
             total_slum += target.sum().item()
             
             # Forward pass -- reshape output to be like the target (has extra 1D dimension)
             output = net(images)
             output = output.view(-1)
             target = target.view(-1)
+            total_pixels += len(target)
             print("Max: ", output.max())
 
             # Do predictions based on each of our thresholds
