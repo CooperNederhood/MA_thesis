@@ -46,6 +46,7 @@ IN_SAMPLE_ROOT = os.path.join(THESIS_ROOT, "data", "descartes", "RGB", "min_clou
 
 # Load the model weights
 net = model_def.Unet(input_channels, img_size)
+net = net.to(device)
 
 # Build the val dataloader
 
