@@ -18,6 +18,7 @@ import datetime
 
 from sklearn.metrics import confusion_matrix
 import pickle 
+import copy 
 
 # Import other module
 import sys 
@@ -39,7 +40,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
 
     conf_matrices = {}
     for t in thresholds:
-        conf_matrices[t] = running_conf_matrix.copy()
+        conf_matrices[t] = copy.deepcopy(running_conf_matrix)
 
     with torch.no_grad():
         for i, data in enumerate(val_dset_loader):
@@ -59,12 +60,33 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
             output = output.view(-1)
             target = target.view(-1)
             total_pixels += len(target)
-            print("Max: ", output.max())
+            
+
+            # Checks
+            assert (output.max().item() < 1.0), "Bad range: Max"
+            assert (output.min().item() > 0.0), "Bad range: Min"
 
             # Do predictions based on each of our thresholds
             for t in thresholds:
-                preds = output > t 
-                conf_matrices[t] += confusion_matrix(preds, target)
+                preds = (output > t).numpy() 
+                #print("Treshold = {} value counts = {}".format(t, pd.value_counts(preds)))
+                assert preds.all() in {0,1}
+                cm = confusion_matrix(preds, target)
+                if cm.sum() != len(target):
+                    print("CM sum = {} but target = {}".format(cm.sum(), len(target)))
+                    assert cm.sum() == len(target)
+
+                conf_matrices[t] += cm 
+                print("Threshold = {} total = {}".format(t, cm.sum()))
+
+
+            # Checks
+            sizes = []
+            for t in thresholds:
+                sizes.append(conf_matrices[t].sum())
+            print("Batch {} counts are: {}".format(i, sizes))
+            print("Total pixels = {}".format(total_pixels))
+            assert np.abs(np.std(sizes)) < 0.001, "Inconsistent counts"
 
     print("There are {} pixels and {} are slum\n".format(total_pixels, total_slum/total_pixels))
 

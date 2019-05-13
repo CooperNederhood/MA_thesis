@@ -34,7 +34,7 @@ IS_GPU = device == "cuda:0"
 OUTPUT_CHANNELS = 1
 
 EPOCH_COUNT = 1 
-BATCH_SIZE = 4
+BATCH_SIZE = 12
 img_size = 256
 input_channels = 4
 
@@ -63,6 +63,8 @@ val_dset = model_def.SegmentationDataset(val_root, f_type="Numpy_array")
 val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
 
 thresholds = [0.0, 0.25, 0.5, 0.75, 1.0]
+#thresholds = [0.25, 0.5]
+
 test_eval.do_ROC_curve(net, val_dset_loader, thresholds, device)
 
 
