@@ -64,7 +64,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
 
             # Check our accuracy
             pred_round = torch.round(output)
-            correct_count = (preds == target).sum()
+            correct_count = (pred_round == target).sum()
             
 
             # Checks
