@@ -68,7 +68,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
 
             # Do predictions based on each of our thresholds
             for t in thresholds:
-                preds = (output > t).numpy() 
+                preds = (output > t).cpu().numpy() 
                 #print("Treshold = {} value counts = {}".format(t, pd.value_counts(preds)))
                 assert preds.all() in {0,1}
                 cm = confusion_matrix(preds, target)
