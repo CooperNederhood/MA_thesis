@@ -37,6 +37,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
     total_pixels = 0
     total_slum = 0
     running_conf_matrix = np.zeros((2, 2))
+    running_correct_count = 0
 
     conf_matrices = {}
     for t in thresholds:
@@ -60,6 +61,10 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
             output = output.view(-1)
             target = target.view(-1)
             total_pixels += len(target)
+
+            # Check our accuracy
+            pred_round = torch.round(output)
+            correct_count = (preds == target).sum()
             
 
             # Checks
@@ -68,7 +73,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
 
             # Do predictions based on each of our thresholds
             for t in thresholds:
-                preds = (output > t).cpu().numpy() 
+                preds = (output >= t).cpu().numpy() 
                 #print("Treshold = {} value counts = {}".format(t, pd.value_counts(preds)))
                 assert preds.all() in {0,1}
                 cm = confusion_matrix(preds, target)
@@ -89,7 +94,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
             assert np.abs(np.std(sizes)) < 0.001, "Inconsistent counts"
 
     print("There are {} pixels and {} are slum\n".format(total_pixels, total_slum/total_pixels))
-
+    print("Accuracy is {} correct of {} pixels acc = {}".format(running_correct_count, total_pixels, running_correct_count/total_pixels))
     for t in thresholds:
         print("Conf mat for threshold={}".format(t))
         print(conf_matrices[t]/total_pixels)
