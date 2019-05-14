@@ -18,6 +18,7 @@ sys.path.append('../')
 sys.path.append('../../')
 sys.path.append('../../utilities')
 from utilities import cnn_utils, transform_utils, test_eval, context_models
+import Unet_rand_RGB.Unet_rand_rgb_model as dataset_def
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -44,9 +45,10 @@ IN_SAMPLE_ROOT = os.path.join(THESIS_ROOT, "data", "descartes", "RGB", "min_clou
 ####################################################################################
 
 # Load the model weights
-net = model_def.Unet(input_channels, img_size)
-net = net.to(device)
+net = context_models.FrontEnd_ContextModel(FRONT_END_TYPE, PATH_TO_FRONT_END_WEIGHTS, IS_GPU, 
+        input_channels, img_size, CONTEXT_LAYER_COUNT, OUTPUT_CHANNELS)
 net = test_eval.load_weights(net, MODEL_NAME, is_gpu=device=="cuda:0")
+net = net.to(device)
 
 # Build the val dataloader
 
@@ -60,7 +62,7 @@ data_root = os.path.join(root, "segmentation/size_{}".format(img_size))
 
 val_root = os.path.join(data_root, "val")
 
-val_dset = model_def.SegmentationDataset(val_root, f_type="Numpy_array")
+val_dset = dataset_def.SegmentationDataset(val_root, f_type="Numpy_array")
 val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
 
 thresholds = [0.0, 0.25, 0.45, 0.5, 0.55, 0.75, 1.0]
