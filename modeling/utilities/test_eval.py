@@ -73,9 +73,10 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
             assert (output.min().item() > 0.0), "Bad range: Min"
 
             # Do predictions based on each of our thresholds
+            target = target.cpu().numpy()
             for t in thresholds:
                 preds = (output >= t).cpu().numpy() 
-                print("Treshold = {} value counts = {}".format(t, pd.value_counts(preds)))
+                #print("Treshold = {} value counts = {}".format(t, pd.value_counts(preds)))
                 assert preds.all() in {0,1}
                 cm = confusion_matrix(preds, target)
                 if cm.sum() != len(target):
