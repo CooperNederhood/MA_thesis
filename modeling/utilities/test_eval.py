@@ -83,7 +83,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
                     print("CM sum = {} but target = {}".format(cm.sum(), len(target)))
                     assert cm.sum() == len(target)
 
-                conf_matrices[t] += cm 
+                conf_matrices[t] = conf_matrices[t] + copy.deepcopy(cm) 
                 print("Threshold = {} total = {}".format(t, cm.sum()))
 
 
