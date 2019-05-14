@@ -85,7 +85,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
 
                 conf_matrices[t] = conf_matrices[t] + copy.deepcopy(cm) 
                 print("Threshold = {} total = {}".format(t, cm.sum()))
-
+                print("Current new mat = ", cm)
 
             # Checks
             sizes = []
