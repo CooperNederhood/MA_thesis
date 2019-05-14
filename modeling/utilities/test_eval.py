@@ -75,7 +75,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
             # Do predictions based on each of our thresholds
             for t in thresholds:
                 preds = (output >= t).cpu().numpy() 
-                #print("Treshold = {} value counts = {}".format(t, pd.value_counts(preds)))
+                print("Treshold = {} value counts = {}".format(t, pd.value_counts(preds)))
                 assert preds.all() in {0,1}
                 cm = confusion_matrix(preds, target)
                 if cm.sum() != len(target):
@@ -83,15 +83,15 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
                     assert cm.sum() == len(target)
 
                 conf_matrices[t] += cm 
-                #print("Threshold = {} total = {}".format(t, cm.sum()))
+                print("Threshold = {} total = {}".format(t, cm.sum()))
 
 
             # Checks
             sizes = []
             for t in thresholds:
                 sizes.append(conf_matrices[t].sum())
-            #print("Batch {} counts are: {}".format(i, sizes))
-            #print("Total pixels = {}".format(total_pixels))
+            print("Batch {} counts are: {}".format(i, sizes))
+            print("Total pixels = {}".format(total_pixels))
             assert np.abs(np.std(sizes)) < 0.001, "Inconsistent counts"
 
     print("There are {} pixels and {} are slum\n".format(total_pixels, total_slum/total_pixels))
