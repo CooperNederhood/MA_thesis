@@ -65,6 +65,7 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
             # Check our accuracy
             pred_round = torch.round(output)
             correct_count = (pred_round == target).sum()
+            running_correct_count += correct_count.item()
             
 
             # Checks
@@ -82,15 +83,15 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
                     assert cm.sum() == len(target)
 
                 conf_matrices[t] += cm 
-                print("Threshold = {} total = {}".format(t, cm.sum()))
+                #print("Threshold = {} total = {}".format(t, cm.sum()))
 
 
             # Checks
             sizes = []
             for t in thresholds:
                 sizes.append(conf_matrices[t].sum())
-            print("Batch {} counts are: {}".format(i, sizes))
-            print("Total pixels = {}".format(total_pixels))
+            #print("Batch {} counts are: {}".format(i, sizes))
+            #print("Total pixels = {}".format(total_pixels))
             assert np.abs(np.std(sizes)) < 0.001, "Inconsistent counts"
 
     print("There are {} pixels and {} are slum\n".format(total_pixels, total_slum/total_pixels))
