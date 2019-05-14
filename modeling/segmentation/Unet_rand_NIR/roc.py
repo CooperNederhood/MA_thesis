@@ -47,6 +47,7 @@ IN_SAMPLE_ROOT = os.path.join(THESIS_ROOT, "data", "descartes", "RGB", "min_clou
 # Load the model weights
 net = model_def.Unet(input_channels, img_size)
 net = net.to(device)
+net = test_eval.load_weights(net, MODEL_NAME, is_gpu=device=="cuda:0")
 
 # Build the val dataloader
 
