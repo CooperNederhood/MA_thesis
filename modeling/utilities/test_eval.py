@@ -90,6 +90,9 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
             # Checks
             sizes = []
             for t in thresholds:
+                print("Current conf mat for t={} is\n{}".format(t, conf_matrices[t]))
+                print("Total = {}".format(conf_matrices[t].sum()))
+                print()
                 sizes.append(conf_matrices[t].sum())
             print("Batch {} counts are: {}".format(i, sizes))
             print("Total pixels = {}".format(total_pixels))
