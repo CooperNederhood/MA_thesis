@@ -61,7 +61,7 @@ data_root = os.path.join(root, "segmentation/size_{}".format(img_size))
 
 val_root = os.path.join(data_root, "val")
 
-val_dset = model_def.SegmentationDataset(val_root, f_type="Numpy_array")
+val_dset = model_def.SegmentationDataset(val_root, f_type="PIL")
 val_dset_loader = utils.data.DataLoader(val_dset, batch_size=BATCH_SIZE, shuffle=True)
 
 thresholds = [0.0, 0.25, 0.45, 0.5, 0.55, 0.75, 1.0]
