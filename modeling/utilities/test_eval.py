@@ -108,8 +108,46 @@ def do_ROC_curve(net, val_dset_loader, thresholds, device):
 
     print("\n\nDONE!")
 
+def tpr_fpr(mats):
 
+    tpr = []
+    fpr = []
+    threshold = []
 
+    for t, mat in mats.items():
+        TN = mat[0,0]
+        TP = mat[1,1]
+        FP = mat[1,0]
+        FN = mat[0,1]
+
+        tpr.append(TP/(TP+FN))
+        fpr.append(FP/(FP+TN))
+        threshold.append(t)
+
+    return tpr, fpr, threshold
+
+def prec_recall(mats):
+
+    precision = []
+    recall = []
+    threshold = []
+    f_score = []
+
+    for t, mat in mats.items():
+        TN = mat[0,0]
+        TP = mat[1,1]
+        FP = mat[1,0]
+        FN = mat[0,1]
+
+        prec = TP/(TP+FP)
+        rec = TP/(TP+FN)
+
+        precision.append(prec)
+        recall.append(rec)
+        threshold.append(t)
+        f_score.append(2*(prec*rec)/(prec+rec))
+
+    return precision, recall, f_score, threshold
 
 def do_in_sample_tests(net, THESIS_ROOT, tile=False, dtype="RGB"):
     '''
